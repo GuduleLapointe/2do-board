@@ -2,7 +2,7 @@ Gudz HYPEvents board
 =====================
 In-world client scripts for HYPEvents server.
 
-Version: 1.0
+Version: 1.0.1
 * Get the latest version in-world: [hop://speculoos.world:8002/Grand Place/](hop://speculoos.world:8002/Grand%20Place/)
 * or from git repository [https://git.magiiic.com/opensimulator/hypevents-board]
 
