@@ -1,7 +1,7 @@
 // Gudz HYPEvents board
 // Version: 1.0
 // Get the latest version from git repository:
-//  https://git.magiiic.com/opensimulator/hypevents-board
+//  https://git.magiiic.com/opensimulator/2do-board
 // or in-world
 //  speculoos.world:8002:Grand Place
 //
