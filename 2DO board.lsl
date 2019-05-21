@@ -1,5 +1,5 @@
 // 2DO board
-string scriptVersion = "1.2.0";
+string scriptVersion = "1.2.2";
 // Get the latest version from git repository:
 //  https://git.magiiic.com/opensimulator/2do-board
 // or in-world
@@ -83,8 +83,9 @@ checkVersion(string remote)
     float l = versionToFloat(scriptVersion);
     if (r > l)
     {
-        llOwnerSay("You are running version " + scriptVersion + " but a newer version (" + remote + ") is available.");
-        llOwnerSay("Head over to speculoos.world:8002:Grand_Place to get the latest version.");
+        llOwnerSay("A new version " + remote + " is available (yours is " + scriptVersion + ").");
+        llOwnerSay("Head over to region Grand Place on Speculoos.world grid  to get a new board."
+        + "\n(hop://speculoos.world:8002/Grand%20Place/257/251/22)");
     }
 }
 integer compareVersions(string s1, string s2)
