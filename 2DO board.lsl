@@ -1,16 +1,17 @@
-// Gudz HYPEvents board
-// Version: 1.0
+// 2DO board
+// Version: 1.1.0
+//
 // Get the latest version from git repository:
 //  https://git.magiiic.com/opensimulator/2do-board
 // or in-world
-//  speculoos.world:8002:Grand Place
+//  hop://speculoos.world:8002/Grand%20Place/
 //
 // © 2018-2019 Gudule Lapointe <gudule@speculoos.world>
 //   Initial project author: Tom Frost <tomfrost@linkwater.org>
 //
 // Licence: GPLv3
 //
-// HYPEvents in-world teleporter board script
+// 2DO in-world events display and teleporter. Liked to live 2DO events server.
 
 // configuration:
 
@@ -33,9 +34,9 @@ string theme = "Terminal";
 //   name, banner, background,
 //   colorPast, colorStarted, colorSoon, colorToday, colorLater,
 list themes = [
-    "Terminal", "http://speculoos.world/events/banner-black.png", "ff000000",   "ff009900", "ff33ff33",  "ff00dd00", "ff009900", "ff006600",
-    "White Board", "http://speculoos.world/events/banner-white.png", "white", "gray", "black", "gray", "darkgray", "lightgray",
-    "Fire Night", "http://speculoos.world/events/banner-black.png", "black", "lightyellow", "yellow", "orange", "darkorange", "orange"
+    "Terminal", "http://2do.pm/events/banner-black.png", "ff000000",   "ff009900", "ff33ff33",  "ff00dd00", "ff009900", "ff006600",
+    "White Board", "http://2do.pm/events/banner-white.png", "white", "gray", "black", "gray", "darkgray", "lightgray",
+    "Fire Night", "http://2do.pm/events/banner-black.png", "black", "lightyellow", "yellow", "orange", "darkorange", "orange"
     ];
 
 // font name and size for event descriptions
@@ -130,7 +131,7 @@ string tfGetAvatarDest(key agent)
 
 doRequest()
 {
-    httpRequest = llHTTPRequest("http://speculoos.world/events/events.lsl2",
+    httpRequest = llHTTPRequest("http://2do.pm/events/events.lsl2",
                                 [HTTP_BODY_MAXLENGTH, 4096],
                                 "");
 }
@@ -176,7 +177,7 @@ refreshTexture()
 
     commandList = osSetPenColor(commandList, colorStarted);
     commandList = osMovePen(commandList, 0, 0);
-    commandList = osDrawImage(commandList, 512, 80, logo);
+    commandList = osDrawImage(commandList, 512, 80, "logo");
 
     commandList = osSetPenSize(commandList, 1);
     // commandList = osDrawLine(commandList, 0, 80, 512, 80);
@@ -247,7 +248,7 @@ refreshTexture()
 
 tfLoadURL(key avatar)
 {
-    llLoadURL(avatar, "Visit the HYPEvents web-site for more detailed event information and technical information.", "http://speculoos.world/events/");
+    llLoadURL(avatar, "Visit the HYPEvents web-site for more detailed event information and technical information.", "http://2do.pm/events/");
 }
 
 // present dialog to avatar with hg / local choice, store destination

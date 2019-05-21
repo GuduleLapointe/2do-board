@@ -1,6 +1,6 @@
-Gudz HYPEvents board
-=====================
-In-world client scripts for HYPEvents server.
+2DO board
+=========
+In-world client scripts for 2DO events server.
 
 Version: 1.0.1
 * Get the latest version in-world: [hop://speculoos.world:8002/Grand Place/](hop://speculoos.world:8002/Grand%20Place/)
@@ -8,7 +8,7 @@ Version: 1.0.1
 
 Installation
 -------------
-* Put the script AND the README file into a prim.
+* Put the script *AND* the README file into a prim.
 * Let the magic happen
 
 Configuration
