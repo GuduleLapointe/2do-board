@@ -1,9 +1,9 @@
 2DO board
 =========
-In-world client scripts for 2DO events server.
+Version: 1.2.3
 
-Version: 1.0.1
-* Get the latest version in-world: [hop://speculoos.world:8002/Grand Place/](hop://speculoos.world:8002/Grand%20Place/)
+In-word teleporter board for 2DO events server.
+* Get the latest version in-world at Speculoos Lab: [speculoos.world:8002/Lab](hop://speculoos.world:8002/Lab/)
 * or from git repository [https://git.magiiic.com/opensimulator/2do-board]
 
 Installation

@@ -1,31 +1,26 @@
 // 2DO board
-string scriptVersion = "1.2.2";
-// Get the latest version from git repository:
-//  https://git.magiiic.com/opensimulator/2do-board
-// or in-world
-//  hop://speculoos.world:8002/Grand%20Place/
+string scriptVersion = "1.2.3";
 //
-// © 2018-2019 Gudule Lapointe <gudule@speculoos.world>
-//   Initial project author: Tom Frost <tomfrost@linkwater.org>
+// In-word teleporter board for 2DO events server.
+//
+// * Get the latest version in-world at Speculoos Lab:
+//      hop://speculoos.world:8002/Lab
+// * or from git repository
+//      https://git.magiiic.com/opensimulator/2do-board
 //
 // Licence: GPLv3
-//
-// 2DO in-world events display and teleporter. Liked to live 2DO events server.
+// © 2018-2019 Gudule Lapointe <gudule@speculoos.world>
+//   Initial project author: Tom Frost <tomfrost@linkwater.org>
 
-// configuration:
+////////////////
+// Configuration
 
-// if set to TRUE, show all events
+// a theme ("Terminal", "White Board", "Fire Night" or see definitions below)
+string theme = "Terminal";
+
+// if set to TRUE, show all found events
 // if set to FALSE, only show events that started at most 2 hours ago
 integer showAll = FALSE;
-
-// if set to TRUE, warn owner when new version is available
-integer warnVersion = TRUE;
-
-// time (in seconds) between refreshing
-float refreshTime = 1800;
-
-// a theme (see 'theme definitions' for options)
-string theme = "Terminal";
 
 // theme definitions
 // a definition is a list of name, background color foreground color, header image url
@@ -46,30 +41,31 @@ integer fontSize=16;
 string hourFontName = "Junction";
 integer hourFontSize = 12;
 
+// time (in seconds) between refreshing
+float refreshTime = 1800;
+
+// if set to TRUE, warn owner when new version is available
+integer warnVersion = TRUE;
+
 // send simulator uri with request, for version control
 integer sendSimInfo = TRUE;
 
+//////////////////////////
 // internal, do not touch:
 integer lineHeight = 28;
 integer startY = 90;
 
 integer texWidth = 512;
 integer texHeight = 512;
-key httpRequest;
-
 list events;
-
 list eventIndices;
-
 integer channel;
-
 integer listenHandle;
 integer listening = 0;
-
-list avatarDestinations = [];
-
+key httpRequest;
 string httpSimInfo;
 string httpUserAgent;
+list avatarDestinations = [];
 
 // return -1 if s1 is lexicographically before s2,
 //         1 if s2 is lexicographically before s1,
@@ -83,9 +79,10 @@ checkVersion(string remote)
     float l = versionToFloat(scriptVersion);
     if (r > l)
     {
-        llOwnerSay("A new version " + remote + " is available (yours is " + scriptVersion + ").");
-        llOwnerSay("Head over to region Grand Place on Speculoos.world grid  to get a new board."
-        + "\n(hop://speculoos.world:8002/Grand%20Place/257/251/22)");
+        llOwnerSay(
+        "A new version " + remote + " is available (yours is " + scriptVersion + ")."
+        + " Head over to Speculoos.world 'Lab' region to get the updated board."
+        + " hop://speculoos.world:8002/Lab/128/128/22");
     }
 }
 integer compareVersions(string s1, string s2)
