@@ -1,5 +1,5 @@
 // 2DO board
-string scriptVersion = "1.1.2";
+string scriptVersion = "1.2.0";
 // Get the latest version from git repository:
 //  https://git.magiiic.com/opensimulator/2do-board
 // or in-world
@@ -75,17 +75,39 @@ string httpUserAgent;
 //         1 if s2 is lexicographically before s1,
 //         0 if s1 is equal to s2
 // adaped from http://wiki.secondlife.com/wiki/String_Compare
-integer tfStrcmp(string s1, string s2)
+checkVersion(string remote)
 {
-    if (s1 == s2)
-        return 0;
+    if(!warnVersion) return;
+    if(remote == scriptVersion) return;
+    float r = versionToFloat(remote);
+    float l = versionToFloat(scriptVersion);
+    if (r > l)
+    {
+        llOwnerSay("You are running version " + scriptVersion + " but a newer version (" + remote + ") is available.");
+        llOwnerSay("Head over to speculoos.world:8002:Grand_Place to get the latest version.");
+    }
+}
+integer compareVersions(string s1, string s2)
+{
+    if (s1 == s2) return 0;
 
-    if (s1 == llList2String(llListSort([s1, s2], 1, TRUE), 0))
-        return -1;
-
+    float i1 = versionToFloat(s1);
+    float i2 = versionToFloat(s2);
+    if (i1 <= i2) return 0;
     return 1;
 }
-
+float versionToFloat (string str)
+{
+    float result = 0;
+    list numbers = llParseString2List(llList2String(llParseString2List(str, [" ","|", ""], []), 0), [".","-", ""], []);
+    float multiplier = 1000000000;
+    integer i; for (i=0;i<llGetListLength (numbers);i++)
+    {
+        multiplier = multiplier / 1000;
+        result = result + llList2Integer(numbers, i) * multiplier;
+    }
+    return result;
+}
 //
 // manipulate global avatarDestinations list
 //
@@ -300,13 +322,9 @@ default
         if(status==200) {
             events = llParseString2List(body, ["\n"], []);
 
-            string version = llList2String(events, 0);
+            string remoteVersion = llList2String(events, 0);
             events = llDeleteSubList(events, 0, 0);
-
-            if(warnVersion && tfStrcmp(version, scriptVersion)!=0) {
-                llOwnerSay("You are running version " + scriptVersion + " but a newer version (" + version + ") is available.");
-                llOwnerSay("Head over to hypergrid.org:8002:Linkwater_South to get the latest version at the HYPEvents office.");
-            }
+            checkVersion(remoteVersion);
 
             refreshTexture();
         } else {
