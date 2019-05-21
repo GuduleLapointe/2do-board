@@ -1,6 +1,5 @@
 // 2DO board
-// Version: 1.1.0
-//
+string scriptVersion = "1.1.2";
 // Get the latest version from git repository:
 //  https://git.magiiic.com/opensimulator/2do-board
 // or in-world
@@ -47,6 +46,9 @@ integer fontSize=16;
 string hourFontName = "Junction";
 integer hourFontSize = 12;
 
+// send simulator uri with request, for version control
+integer sendSimInfo = TRUE;
+
 // internal, do not touch:
 integer lineHeight = 28;
 integer startY = 90;
@@ -66,7 +68,8 @@ integer listening = 0;
 
 list avatarDestinations = [];
 
-string scriptVersion = "0.8";
+string httpSimInfo;
+string httpUserAgent;
 
 // return -1 if s1 is lexicographically before s2,
 //         1 if s2 is lexicographically before s1,
@@ -131,9 +134,9 @@ string tfGetAvatarDest(key agent)
 
 doRequest()
 {
-    httpRequest = llHTTPRequest("http://2do.pm/events/events.lsl2",
-                                [HTTP_BODY_MAXLENGTH, 4096],
-                                "");
+    string requestURL = "http://2do.pm/events/events.lsl2";
+    if(sendSimInfo) requestURL+="?ref="+httpSimInfo;
+    httpRequest = llHTTPRequest(requestURL + httpUserAgent, [HTTP_BODY_MAXLENGTH, 4096], "");
 }
 
 string tfTrimText(string in, string fontname, integer fontsize,integer width)
@@ -177,7 +180,7 @@ refreshTexture()
 
     commandList = osSetPenColor(commandList, colorStarted);
     commandList = osMovePen(commandList, 0, 0);
-    commandList = osDrawImage(commandList, 512, 80, "logo");
+    commandList = osDrawImage(commandList, 512, 80, logo);
 
     commandList = osSetPenSize(commandList, 1);
     // commandList = osDrawLine(commandList, 0, 80, 512, 80);
@@ -287,6 +290,8 @@ default
         listening = 0;
         avatarDestinations = [];
         llSetTimerEvent(refreshTime);
+        httpUserAgent=" HTTP/1.0\nUser-Agent: LSL Script (Mozilla Compatible)" + "\n\n";
+        if(sendSimInfo) httpSimInfo = llGetScriptName() + "/" + scriptVersion + " " + osGetGridGatekeeperURI() + ":" + llGetRegionName();
         doRequest();
     }
 
