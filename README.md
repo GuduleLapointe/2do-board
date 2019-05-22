@@ -1,6 +1,6 @@
 2DO board
 =========
-Version: 1.2.3
+Version: 1.3.0
 
 In-word teleporter board for 2DO events server.
 * Get the latest version in-world at Speculoos Lab: [speculoos.world:8002/Lab](hop://speculoos.world:8002/Lab/)
@@ -8,8 +8,10 @@ In-word teleporter board for 2DO events server.
 
 Installation
 -------------
-* Put the script *AND* the README file into a prim.
+* Put the content of the "2DO board.lsl" in a script file and name it "2DO board"
+* Put the content of one of the themes files in a notecard named "Configuration"
 * Let the magic happen
+* To customize, modify "Configuration" notecard
 
 Configuration
 -------------

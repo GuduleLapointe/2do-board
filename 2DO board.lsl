@@ -1,5 +1,5 @@
 // 2DO board
-string scriptVersion = "1.2.3";
+string scriptVersion = "1.3.0";
 //
 // In-word teleporter board for 2DO events server.
 //
@@ -12,51 +12,44 @@ string scriptVersion = "1.2.3";
 // © 2018-2019 Gudule Lapointe <gudule@speculoos.world>
 //   Initial project author: Tom Frost <tomfrost@linkwater.org>
 
-////////////////
-// Configuration
+////////////////////////////
+// DO NOT MOFIFY VALUES HERE
+// They would be overridden by updates
+// Instead, update the  "Configuration" notecard inside the prim
 
-// a theme ("Terminal", "White Board", "Fire Night" or see definitions below)
-string theme = "Terminal";
+// string theme = "Terminal";
+integer showPastEvents = FALSE;
 
-// if set to TRUE, show all found events
-// if set to FALSE, only show events that started at most 2 hours ago
-integer showAll = FALSE;
+string logoURL = "http://2do.pm/events/banner-black.png";
+string backgroundColor = "ff000000";
+string fontColor = "ff33ff33";
+string colorPast = "";
+string colorStarted = "";
+string colorSoon = "";
+string colorToday = "";
+string colorLater = "";
+string colorHour = "";
 
-// theme definitions
-// a definition is a list of name, background color foreground color, header image url
-// Order of the settings:
-//   name, banner, background,
-//   colorPast, colorStarted, colorSoon, colorToday, colorLater,
-list themes = [
-    "Terminal", "http://2do.pm/events/banner-black.png", "ff000000",   "ff009900", "ff33ff33",  "ff00dd00", "ff009900", "ff006600",
-    "White Board", "http://2do.pm/events/banner-white.png", "white", "gray", "black", "gray", "darkgray", "lightgray",
-    "Fire Night", "http://2do.pm/events/banner-black.png", "black", "lightyellow", "yellow", "orange", "darkorange", "orange"
-    ];
+string mainFontName = "Junction";
+integer mainFontSize=16;
 
-// font name and size for event descriptions
-string fontName = "Junction";
-integer fontSize=16;
-
-// font name and size for time display
-string hourFontName = "Junction";
+string hourFontName = "";
 integer hourFontSize = 12;
 
-// time (in seconds) between refreshing
 float refreshTime = 1800;
+integer updateWarning = TRUE;
+integer sendSimInfo = FALSE;
 
-// if set to TRUE, warn owner when new version is available
-integer warnVersion = TRUE;
-
-// send simulator uri with request, for version control
-integer sendSimInfo = TRUE;
+integer lineHeight = 28;
+integer bannerHeight = 90;
+integer textureWidth = 512;
+integer textureHeight = 512;
 
 //////////////////////////
 // internal, do not touch:
-integer lineHeight = 28;
-integer startY = 90;
 
-integer texWidth = 512;
-integer texHeight = 512;
+string CONFIG_FILE = "Configuration";
+
 list events;
 list eventIndices;
 integer channel;
@@ -73,7 +66,7 @@ list avatarDestinations = [];
 // adaped from http://wiki.secondlife.com/wiki/String_Compare
 checkVersion(string remote)
 {
-    if(!warnVersion) return;
+    if(!updateWarning) return;
     if(remote == scriptVersion) return;
     float r = versionToFloat(remote);
     float l = versionToFloat(scriptVersion);
@@ -106,6 +99,63 @@ float versionToFloat (string str)
     }
     return result;
 }
+
+integer boolean(string val)
+{
+    if(llToUpper(val) == "TRUE" | llToUpper(val) == "YES" | (integer)val == TRUE)
+    {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+getConfig() {
+    if(llGetInventoryType(CONFIG_FILE) == INVENTORY_NOTECARD) {
+        string data = osGetNotecard(CONFIG_FILE);
+        list lines = llParseString2List (data,["\n"],[]);
+        integer i; for (i=0;i<llGetListLength (lines);i++)
+        {
+            string line = llList2String(lines,i);
+            list parse  = llParseStringKeepNulls (line, ["="],[]);
+            string var = llStringTrim(llList2String(parse, 0), STRING_TRIM);
+            string val = llStringTrim(llList2String(parse, 1), STRING_TRIM);
+            // if (var == "theme") theme = (string)val;
+            if (var == "showPastEvents") showPastEvents = boolean(val);
+            else if (var == "updateWarning") updateWarning = boolean(val);
+            else if (var == "sendSimInfo") sendSimInfo = boolean(val);
+
+            else if (var == "textureWidth" && val!="") textureWidth = (integer)val;
+            else if (var == "textureHeight" && val!="") textureHeight = (integer)val;
+            else if (var == "logoURL") logoURL = (string)val;
+            else if (var == "bannerHeight") bannerHeight = (integer)val;
+            else if (var == "lineHeight") lineHeight = (integer)val;
+
+            else if (var == "mainFontName" && val!="") mainFontName = (string)val;
+            else if (var == "mainFontSize" && val!="") mainFontSize = (integer)val;
+            else if (var == "hourFontName") hourFontName = (string)val;
+            else if (var == "hourFontSize" && val!="") hourFontSize = (integer)val;
+
+            else if (var == "backgroundColor") backgroundColor = (string)val;
+            else if (var == "fontColor") fontColor = (string)val;
+            else if (var == "colorPast") colorPast = (string)val;
+            else if (var == "colorStarted") colorStarted = (string)val;
+            else if (var == "colorSoon") colorSoon = (string)val;
+            else if (var == "colorToday") colorToday = (string)val;
+            else if (var == "colorLater") colorLater = (string)val;
+            else if (var == "colorHour") colorHour = (string)val;
+        }
+    }
+
+    if(hourFontName=="") hourFontName = mainFontName;
+    if(fontColor=="") fontColor = "black";
+    if(colorPast=="") colorPast = fontColor;
+    if(colorStarted=="") colorStarted = fontColor;
+    if(colorSoon=="") colorSoon = colorStarted;
+    if(colorToday=="") colorToday = colorStarted;
+    if(colorLater=="") colorLater = colorToday;
+    if(colorHour=="") colorHour = fontColor;
+}
+
 //
 // manipulate global avatarDestinations list
 //
@@ -188,19 +238,9 @@ refreshTexture()
 
     eventIndices = [];
 
-    integer themeIdx = llListFindList(themes, theme);
-    string logo = llList2String(themes, themeIdx + 1);
-    string backgroundColor = llList2String(themes, themeIdx + 2);
-    string fontColor = llList2String(themes, themeIdx + 2);
-    string colorPast = llList2String(themes, themeIdx + 3);
-    string colorStarted = llList2String(themes, themeIdx + 4);
-    string colorSoon = llList2String(themes, themeIdx + 5);
-    string colorToday = llList2String(themes, themeIdx + 6);
-    string colorLater = llList2String(themes, themeIdx + 7);
-
     commandList = osSetPenColor(commandList, colorStarted);
     commandList = osMovePen(commandList, 0, 0);
-    commandList = osDrawImage(commandList, 512, 80, logo);
+    commandList = osDrawImage(commandList, 512, 80, logoURL);
 
     commandList = osSetPenSize(commandList, 1);
     // commandList = osDrawLine(commandList, 0, 80, 512, 80);
@@ -209,7 +249,7 @@ refreshTexture()
 
     integer i;
 
-    integer y = startY;
+    integer y = bannerHeight;
 
     integer secondMargin = 10 + hourFontSize * 7;
     // rough estimation, but it works quite well
@@ -231,7 +271,7 @@ refreshTexture()
         list timeParsed = llParseString2List(timeSpecifier, ["~"], []);
 
 
-        if(showAll || llList2Integer(timeParsed, 2) > notBefore) {
+        if(showPastEvents || llList2Integer(timeParsed, 2) > notBefore) {
             eventIndices += i;
             if(llList2Integer(timeParsed, 2) < currentTime - 3600) {
                 commandList = osSetPenColor(commandList, colorPast);
@@ -254,10 +294,10 @@ refreshTexture()
             commandList = osDrawText(commandList, llList2String(timeParsed, 0));
 
             string text = llList2String(events, base);
-            text = tfTrimText(text, fontName, fontSize, texWidth-30-secondMargin);
+            text = tfTrimText(text, mainFontName, mainFontSize, textureWidth-30-secondMargin);
             commandList = osMovePen(commandList, secondMargin, y);
-            commandList = osSetFontName(commandList, fontName);
-            commandList = osSetFontSize(commandList, fontSize);
+            commandList = osSetFontName(commandList, mainFontName);
+            commandList = osSetFontSize(commandList, mainFontSize);
             commandList = osDrawText(commandList, text);
 
             y += lineHeight;
@@ -266,9 +306,8 @@ refreshTexture()
         }
     }
 
-    osSetDynamicTextureData("", "vector", commandList, "width:"+(string)texWidth+",height:"+(string)texHeight + ",bgcolor:" + backgroundColor, 0);
+    osSetDynamicTextureData("", "vector", commandList, "width:"+(string)textureWidth+",height:"+(string)textureHeight + ",bgcolor:" + backgroundColor, 0);
 }
-
 tfLoadURL(key avatar)
 {
     llLoadURL(avatar, "Visit the HYPEvents web-site for more detailed event information and technical information.", "http://2do.pm/events/");
@@ -307,6 +346,8 @@ default
     state_entry()
     {
         channel = -25673 - (integer)llFrand(1000000);
+        getConfig();
+
         listening = 0;
         avatarDestinations = [];
         llSetTimerEvent(refreshTime);
@@ -352,17 +393,17 @@ default
         integer i;
         for(i=0;i<num;i++) {
             vector touchPos = llDetectedTouchUV(i);
-            integer touchX = (integer)(touchPos.x * texWidth);
-            integer touchY = texHeight - (integer)(touchPos.y * texHeight);
+            integer touchX = (integer)(touchPos.x * textureWidth);
+            integer touchY = textureHeight - (integer)(touchPos.y * textureHeight);
             key avatar = llDetectedKey(i);
 
             if(touchY < 80) {
                 tfLoadURL(avatar);
-            } else if(touchY>=startY) {
+            } else if(touchY>=bannerHeight) {
                 integer touchIndex;
                 integer eventIndex;
 
-                touchIndex = (integer)((touchY - startY) / lineHeight);
+                touchIndex = (integer)((touchY - bannerHeight) / lineHeight);
 
                 if(touchIndex < llGetListLength(eventIndices)) {
                     eventIndex = llList2Integer(eventIndices, touchIndex);
@@ -396,7 +437,8 @@ default
         if(change & CHANGED_SHAPE ||
            change & CHANGED_SCALE ||
            change & CHANGED_OWNER ||
-           change & CHANGED_REGION
+           change & CHANGED_REGION ||
+           change & CHANGED_INVENTORY
            ) {
                llResetScript();
         }

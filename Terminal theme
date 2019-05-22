@@ -1,0 +1,26 @@
+// define one single text color
+fontColor = green
+backgroundColor = black
+
+// or specific colors by timeframe (empty ones use value of fontColor
+colorPast = ff009900
+colorStarted =
+colorSoon = ff00dd00
+colorToday = ff009900
+colorLater = ff006600
+colorHour =
+
+logoURL = http://2do.pm/events/banner-black.png
+bannerHeight = 90
+lineHeight = 28
+
+// depends on the fonts installed on the simulator, not on the client!
+mainFontName =
+mainFontSize =
+
+hourFontName =
+hourFontSize =
+
+// texture sizes must be powers of two (256, 512, 1024...) 512 is very fine
+textureWidth =
+textureHeight =
