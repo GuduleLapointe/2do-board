@@ -1,5 +1,5 @@
 // 2DO board
-string scriptVersion = "1.3.0";
+string scriptVersion = "1.3.1";
 //
 // In-word teleporter board for 2DO events server.
 //
@@ -144,6 +144,8 @@ getConfig() {
             else if (var == "colorLater") colorLater = (string)val;
             else if (var == "colorHour") colorHour = (string)val;
         }
+        if(backgroundColor == "transparent")
+        backgroundColor = TEXTURE_TRANSPARENT;
     }
 
     if(hourFontName=="") hourFontName = mainFontName;
@@ -240,7 +242,7 @@ refreshTexture()
 
     commandList = osSetPenColor(commandList, colorStarted);
     commandList = osMovePen(commandList, 0, 0);
-    commandList = osDrawImage(commandList, 512, 80, logoURL);
+    commandList = osDrawImage(commandList, 512, bannerHeight, logoURL);
 
     commandList = osSetPenSize(commandList, 1);
     // commandList = osDrawLine(commandList, 0, 80, 512, 80);
@@ -306,7 +308,11 @@ refreshTexture()
         }
     }
 
-    osSetDynamicTextureData("", "vector", commandList, "width:"+(string)textureWidth+",height:"+(string)textureHeight + ",bgcolor:" + backgroundColor, 0);
+    integer alpha = 255;
+    if(backgroundColor == TEXTURE_TRANSPARENT) alpha = 0;
+    osSetDynamicTextureData("", "vector", commandList, "width:"+(string)textureWidth+",height:"+(string)textureHeight
+    + ",bgcolor:" + backgroundColor
+    + ",alpha:" + (string)alpha, 0);
 }
 tfLoadURL(key avatar)
 {
