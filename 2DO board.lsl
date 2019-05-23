@@ -1,5 +1,5 @@
 // 2DO board
-string scriptVersion = "1.3.3";
+string scriptVersion = "1.3.4";
 //
 // In-word teleporter board for 2DO events server.
 //
@@ -330,7 +330,7 @@ refreshTexture()
 
 tfLoadURL(key avatar)
 {
-    llLoadURL(avatar, "Visit the HYPEvents web-site for more detailed event information and technical information.", "http://2do.pm/events/");
+    llLoadURL(avatar, "Visit 2DO.pm/events for a detailed full list of upcoming events.", "http://2do.pm/events/");
 }
 
 // present dialog to avatar with hg / local choice, store destination
