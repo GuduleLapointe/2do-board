@@ -1,5 +1,5 @@
 // 2DO board
-string scriptVersion = "1.3.2";
+string scriptVersion = "1.3.3";
 //
 // In-word teleporter board for 2DO events server.
 //
@@ -20,7 +20,7 @@ string scriptVersion = "1.3.2";
 // string theme = "Terminal";
 integer showPastEvents = FALSE;
 
-string logoURL = "http://2do.pm/events/banner-black.png";
+string bannerURL = "http://2do.pm/events/banner-black.png";
 string backgroundColor = "ff000000";
 string fontColor = "ff33ff33";
 string colorPast = "";
@@ -41,6 +41,7 @@ integer updateWarning = TRUE;
 integer sendSimInfo = FALSE;
 
 integer lineHeight = 28;
+integer cellPadding = 0;
 integer bannerHeight = 90;
 integer textureWidth = 512;
 integer textureHeight = 512;
@@ -127,9 +128,11 @@ getConfig() {
 
             else if (var == "textureWidth" && val!="") textureWidth = (integer)val;
             else if (var == "textureHeight" && val!="") textureHeight = (integer)val;
-            else if (var == "logoURL") logoURL = (string)val;
+            else if (var == "logoURL") bannerURL = (string)val;
+            else if (var == "bannerURL") bannerURL = (string)val;
             else if (var == "bannerHeight") bannerHeight = (integer)val;
             else if (var == "lineHeight") lineHeight = (integer)val;
+            else if (var == "cellPadding") cellPadding = (integer)val;
 
             else if (var == "mainFontName" && val!="") mainFontName = (string)val;
             else if (var == "mainFontSize" && val!="") mainFontSize = (integer)val;
@@ -243,7 +246,8 @@ refreshTexture()
 
     commandList = osSetPenColor(commandList, colorStarted);
     commandList = osMovePen(commandList, 0, 0);
-    commandList = osDrawImage(commandList, 512, bannerHeight, logoURL);
+    if(bannerHeight > 0 && bannerURL != "")
+    commandList = osDrawImage(commandList, 512, bannerHeight, bannerURL);
 
     commandList = osSetPenSize(commandList, 1);
     // commandList = osDrawLine(commandList, 0, 80, 512, 80);
@@ -291,14 +295,14 @@ refreshTexture()
             else {
                 commandList = osSetPenColor(commandList, colorLater);
             }
-            commandList = osMovePen(commandList, 10, y + 1);
+            commandList = osMovePen(commandList, 10, y + 1 + cellPadding);
             commandList = osSetFontName(commandList, hourFontName);
             commandList = osSetFontSize(commandList, hourFontSize);
             commandList = osDrawText(commandList, llList2String(timeParsed, 0));
 
             string text = llList2String(events, base);
             text = tfTrimText(text, mainFontName, mainFontSize, textureWidth-30-secondMargin);
-            commandList = osMovePen(commandList, secondMargin, y);
+            commandList = osMovePen(commandList, secondMargin, y + cellPadding);
             commandList = osSetFontName(commandList, mainFontName);
             commandList = osSetFontSize(commandList, mainFontSize);
             commandList = osDrawText(commandList, text);
