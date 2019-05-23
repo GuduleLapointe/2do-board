@@ -1,6 +1,6 @@
 2DO board
 =========
-Version: 1.3.0
+Version: 1.3.2
 
 In-word teleporter board for 2DO events server.
 * Get the latest version in-world at Speculoos Lab: [speculoos.world:8002/Lab](hop://speculoos.world:8002/Lab/)

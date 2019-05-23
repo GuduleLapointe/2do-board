@@ -1,5 +1,5 @@
 // 2DO board
-string scriptVersion = "1.3.1";
+string scriptVersion = "1.3.2";
 //
 // In-word teleporter board for 2DO events server.
 //
@@ -44,6 +44,7 @@ integer lineHeight = 28;
 integer bannerHeight = 90;
 integer textureWidth = 512;
 integer textureHeight = 512;
+list activeSides = [ 2,4 ];
 
 //////////////////////////
 // internal, do not touch:
@@ -310,10 +311,19 @@ refreshTexture()
 
     integer alpha = 255;
     if(backgroundColor == TEXTURE_TRANSPARENT) alpha = 0;
-    osSetDynamicTextureData("", "vector", commandList, "width:"+(string)textureWidth+",height:"+(string)textureHeight
-    + ",bgcolor:" + backgroundColor
-    + ",alpha:" + (string)alpha, 0);
-}
+    i = 0;
+    do
+    {
+        integer drawSide=llList2Integer(activeSides, i);
+        osSetDynamicTextureDataBlendFace("", "vector", commandList, "width:"+(string)textureWidth+",height:"+(string)textureHeight
+        + ",bgcolor:" + backgroundColor
+        + ",alpha:" + (string)alpha, FALSE,1, 0,alpha,drawSide);
+        i++;
+    }
+    while (i < llGetListLength(activeSides));
+
+ }
+
 tfLoadURL(key avatar)
 {
     llLoadURL(avatar, "Visit the HYPEvents web-site for more detailed event information and technical information.", "http://2do.pm/events/");
