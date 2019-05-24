@@ -1,5 +1,5 @@
 // 2DO board
-string scriptVersion = "1.3.4";
+string scriptVersion = "1.3.5";
 //
 // In-word teleporter board for 2DO events server.
 //
@@ -61,6 +61,7 @@ key httpRequest;
 string httpSimInfo;
 string httpUserAgent;
 list avatarDestinations = [];
+key initTKey="7fca4681-d388-4d69-971a-d884b4586f22";
 
 // return -1 if s1 is lexicographically before s2,
 //         1 if s2 is lexicographically before s1,
@@ -360,13 +361,28 @@ tfGoToEvent(key avatar, integer eventIndex)
     } else {
     }
 }
-
+initTextures()
+{
+    integer i = 0;
+    do
+    {
+        integer drawSide=llList2Integer(activeSides, i);
+        llSetTexture(initTKey, drawSide);
+        i++;
+    }
+    while (i < llGetListLength(activeSides));
+}
+debug(string message)
+{
+    llOwnerSay(message);
+}
 default
 {
     state_entry()
     {
         channel = -25673 - (integer)llFrand(1000000);
         getConfig();
+        initTextures();
 
         listening = 0;
         avatarDestinations = [];
@@ -387,7 +403,7 @@ default
 
             refreshTexture();
         } else {
-            llOwnerSay("Unable to fetch event.lsl2, status: "+(string)status);
+            llOwnerSay("Unable to fetch event, status: "+(string)status);
         }
     }
 
@@ -412,14 +428,25 @@ default
     {
         integer i;
         for(i=0;i<num;i++) {
+            integer link = llDetectedLinkNumber(i);
+            if (link != llGetLinkNumber()) jump break;
+
+            vector point = llDetectedTouchST(i);
+            if (point == TOUCH_INVALID_TEXCOORD)jump break;
+
+            integer face = llDetectedTouchFace(i);
+            if (activeSides != [ALL_SIDES] && llListFindList(activeSides, face) == -1) {
+                jump break;
+            }
+
             vector touchPos = llDetectedTouchUV(i);
             integer touchX = (integer)(touchPos.x * textureWidth);
             integer touchY = textureHeight - (integer)(touchPos.y * textureHeight);
             key avatar = llDetectedKey(i);
 
-            if(touchY < 80) {
+            if(touchY < bannerHeight) {
                 tfLoadURL(avatar);
-            } else if(touchY>=bannerHeight) {
+            } else {
                 integer touchIndex;
                 integer eventIndex;
 
@@ -431,6 +458,7 @@ default
                 }
             }
         }
+        @break;
     }
 
     timer()
