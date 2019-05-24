@@ -1,5 +1,5 @@
 // 2DO board
-string scriptVersion = "1.3.5";
+string scriptVersion = "1.4.0";
 //
 // In-word teleporter board for 2DO events server.
 //
@@ -67,29 +67,23 @@ key initTKey="7fca4681-d388-4d69-971a-d884b4586f22";
 //         1 if s2 is lexicographically before s1,
 //         0 if s1 is equal to s2
 // adaped from http://wiki.secondlife.com/wiki/String_Compare
-checkVersion(string remote)
+integer compareVersions(string a, string b)
 {
-    if(!updateWarning) return;
-    if(remote == scriptVersion) return;
-    float r = versionToFloat(remote);
-    float l = versionToFloat(scriptVersion);
-    if (r > l)
-    {
-        llOwnerSay(
-        "A new version " + remote + " is available (yours is " + scriptVersion + ")."
-        + " Head over to Speculoos.world 'Lab' region to get the updated board."
-        + " hop://speculoos.world:8002/Lab/128/128/22");
-    }
+    if(a == b) return 0;
+    float numA = versionToFloat(a);
+    float numB = versionToFloat(b);
+    if (numA > numB) return 1;
+    return -1;
 }
-integer compareVersions(string s1, string s2)
-{
-    if (s1 == s2) return 0;
-
-    float i1 = versionToFloat(s1);
-    float i2 = versionToFloat(s2);
-    if (i1 <= i2) return 0;
-    return 1;
-}
+// integer compareVersionsNum(string s1, string s2)
+// {
+//     if (s1 == s2) return 0;
+//
+//     float i1 = versionToFloat(s1);
+//     float i2 = versionToFloat(s2);
+//     if (i1 <= i2) return 0;
+//     return 1;
+// }
 float versionToFloat (string str)
 {
     float result = 0;
@@ -397,9 +391,29 @@ default
         if(status==200) {
             events = llParseString2List(body, ["\n"], []);
 
-            string remoteVersion = llList2String(events, 0);
+            // We don't use other meta information for now. We split them in prevision of future versions to ensure backwards compatibility between updated server export and outdated in-wolrd script
+            string metaRaw = llList2String(events, 0);
+            list meta = llParseString2List(metaRaw, ";", "");
+            list version = llParseString2List(llList2String(meta, 0), " ", "");
+            string remoteVersion = llList2String(version, 0);
+            version = llDeleteSubList(version, 0, 0);
+            string remoteMessage = llDumpList2String(version, " ");
+            meta = llDeleteSubList(meta, 0, 0);
+
             events = llDeleteSubList(events, 0, 0);
-            checkVersion(remoteVersion);
+            if(updateWarning)
+            {
+                if(compareVersions(remoteVersion, scriptVersion) > 0)
+                {
+                    llOwnerSay(
+                    "A new version " + remoteVersion + " is available\n"
+                    + remoteMessage + "\n"
+                    + "Your version is " + scriptVersion + "\n"
+                    + "Head over to Speculoos.world:8002:Lab region to get the updated board."
+                    + " hop://speculoos.world:8002/Lab/128/128/22"
+                    + " or visit Kitely Market https://www.kitely.com/market/product/50129545");
+                }
+            }
 
             refreshTexture();
         } else {

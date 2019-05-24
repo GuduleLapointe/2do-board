@@ -1,10 +1,9 @@
 2DO board
 =========
-Version: 1.3.3
 
 In-word teleporter board for 2DO events server.
 * Get the latest version in-world at Speculoos Lab: [speculoos.world:8002/Lab](hop://speculoos.world:8002/Lab/)
-* or from [Kitely Market](https://www.kitely.com/market/product/50129545/2DO-board-events-display-and-teleporter)
+* or from [Kitely Market](https://www.kitely.com/market/product/50129545)
 
 Installation from sources
 -------------------------
@@ -16,6 +15,6 @@ Installation from sources
 Licence and copyright
 ---------------------
 (c) 2018-2019 Gudule Lapointe <gudule@speculoos.world>.
-Based on the initial work of Tom Frost <tomfrost@linkwater.org>.
+Based on the work of Tom Frost <tomfrost@linkwater.org>.
 
 Licence: GPLv3
