@@ -1,5 +1,5 @@
 // 2DO board
-string scriptVersion = "1.4.0";
+string scriptVersion = "1.5.0";
 //
 // In-word teleporter board for 2DO events server.
 //
@@ -62,6 +62,7 @@ string httpSimInfo;
 string httpUserAgent;
 list avatarDestinations = [];
 key initTKey="7fca4681-d388-4d69-971a-d884b4586f22";
+float touchStarted;
 
 // return -1 if s1 is lexicographically before s2,
 //         1 if s2 is lexicographically before s1,
@@ -437,9 +438,15 @@ default
             }
         }
     }
-
+    touch_start(integer index)
+    {
+        touchStarted=llGetTime();
+    }
     touch_end(integer num)
     {
+        if(llDetectedKey(0)==llGetOwner() && llGetTime() - touchStarted > 2)
+        llResetScript();
+
         integer i;
         for(i=0;i<num;i++) {
             integer link = llDetectedLinkNumber(i);
