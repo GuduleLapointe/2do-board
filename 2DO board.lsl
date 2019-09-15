@@ -1,5 +1,5 @@
 // 2DO board
-string scriptVersion = "1.5.0";
+string scriptVersion = "1.5.1";
 //
 // In-word teleporter board for 2DO events server.
 //
@@ -338,17 +338,17 @@ tfGoToEvent(key avatar, integer eventIndex)
     integer base = eventIndex * 3;
 
     if(eventIndex<numEvents) {
-        string text=llList2String(events, base+0);
+        string text="\n" + llList2String(events, base+0);
 
         text += "\n\n";
 
         text += "The hypergrid url for this event is:\n\n"+llList2String(events, base+2)+"\n\n";
 
-        text += "Is this hgurl a hypergrid url for you or a local url?\n\n";
+        // text += "Is this hgurl a hypergrid url for you or a local url?\n\n";
 
         tfSetAvatarDest(avatar, llList2String(events, base+2));
-
-        llDialog(avatar, text, ["Hypergrid","Local grid", "Cancel"], channel);
+        // llMapDestination(llList2String(events, base+2),<128,128,21>, ZERO_VECTOR);
+        llDialog(avatar, text, ["Teleport", "Cancel"], channel);
         if(listening==0) {
             listenHandle = llListen(channel, "", NULL_KEY, "");
             listening = (integer)llGetTime();
@@ -425,16 +425,22 @@ default
     listen(integer chan, string name, key agent, string msg)
     {
         if(chan==channel) {
-            if(msg!="Cancel") {
-                string dest = tfGetAvatarDest(agent);
-                if(dest!=NULL_KEY) {
-                    string dsturl = dest;
-                    if(msg=="Local grid") {
-                        list hgurl = llParseString2List(dest, [":"], []);
-                        dsturl = llList2String(hgurl, 2);
-                    }
+            string dsturl = tfGetAvatarDest(agent);
+            if(msg=="Teleport") {
+                if(dsturl!=NULL_KEY) {
+                    // if(msg=="Local grid") {
+                    //     list hgurl = llParseString2List(dest, [":"], []);
+                    //     dsturl = llList2String(hgurl, 2);
+                    // }
                     osTeleportAgent(agent, dsturl, <128.0,128.0,23.0>, <1.0,1.0,0.0> );
                 }
+            // } else if(msg=="Map") {
+            //     list dstList = llParseString2List(dsturl, [":"], []);
+            //     // string destMap = "http://" + llList2String(dstList, 0) + ":" + llList2String(dstList, 1) + ":" + llList2String(dstList, 2);
+            //     llInstantMessage(agent, "Opening map for " + dsturl);
+            //     llMapDestination(dsturl, <128,128,21>, ZERO_VECTOR);
+            } else if (msg!="Cancel") {
+                llInstantMessage(agent, msg + " not implemented yet");
             }
         }
     }
