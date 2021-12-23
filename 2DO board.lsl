@@ -441,7 +441,7 @@ default
                 string remoteMessage = llDumpList2String(versionList, " ");
                 meta = llDeleteSubList(meta, 0, 0);
 
-                // events = llDeleteSubList(events, 0, 0);
+                events = llDeleteSubList(events, 0, 0);
                 // if(updateWarning)
                 // {
                 //     if(compareVersions(remoteVersion, version) > 0)
