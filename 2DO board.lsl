@@ -1,5 +1,4 @@
 // 2DO board
-string scriptVersion = "1.5.1";
 //
 // In-word teleporter board for 2DO events server.
 //
@@ -17,9 +16,10 @@ string scriptVersion = "1.5.1";
 // They would be overridden by updates
 // Instead, update the  "Configuration" notecard inside the prim
 
+integer DEBUG = FALSE;
+
 // string theme = "Terminal";
 integer showPastEvents = FALSE;
-
 string bannerURL = "http://2do.pm/events/banner-black.png";
 string backgroundColor = "ff000000";
 string fontColor = "ff33ff33";
@@ -64,38 +64,76 @@ list avatarDestinations = [];
 key initTKey="7fca4681-d388-4d69-971a-d884b4586f22";
 float touchStarted;
 
-// return -1 if s1 is lexicographically before s2,
-//         1 if s2 is lexicographically before s1,
-//         0 if s1 is equal to s2
-// adaped from http://wiki.secondlife.com/wiki/String_Compare
-integer compareVersions(string a, string b)
+// Change only in your master script
+string scrupURL = "https://speculoos.world/scrup/scrup.php"; // Change to your scrup.php URL
+integer scrupPin = 56748; // Change or not, it shouldn't hurt
+integer scrupAllowUpdates = TRUE; // should always be true, except for debug
+
+// Do not change below
+string scrupRequestID;
+string version;
+
+debug(string message)
 {
-    if(a == b) return 0;
-    float numA = versionToFloat(a);
-    float numB = versionToFloat(b);
-    if (numA > numB) return 1;
-    return -1;
+    if(DEBUG) llOwnerSay(message);
 }
-// integer compareVersionsNum(string s1, string s2)
-// {
-//     if (s1 == s2) return 0;
-//
-//     float i1 = versionToFloat(s1);
-//     float i2 = versionToFloat(s2);
-//     if (i1 <= i2) return 0;
-//     return 1;
-// }
-float versionToFloat (string str)
-{
-    float result = 0;
-    list numbers = llParseString2List(llList2String(llParseString2List(str, [" ","|", ""], []), 0), [".","-", ""], []);
-    float multiplier = 1000000000;
-    integer i; for (i=0;i<llGetListLength (numbers);i++)
-    {
-        multiplier = multiplier / 1000;
-        result = result + llList2Integer(numbers, i) * multiplier;
+
+scrup() {
+    string scrupVersion = "1.0.2";
+    if(!scrupAllowUpdates)  {
+        llSetRemoteScriptAccessPin(0);
+        return;
     }
-    return result;
+
+    // Get version from script name
+    string name = llGetScriptName();
+    string part;
+    // list softParts=[];
+    list parts=llParseString2List(name, [" "], "");
+    integer i; for (i=1;i<llGetListLength(parts);i++)
+    {
+        part = llList2String(parts, i);
+        string main = llList2String(llParseString2List(part, ["-"], ""), 0);
+        if(llGetListLength(llParseString2List(main, ["."], [])) > 1
+        && llGetListLength(llParseString2List(main, [".", 0,1,2,3,4,5,6,7,8,9], [])) == 0) {
+            version = part;
+            jump break;
+        }
+    }
+    version = "";
+    scrupAllowUpdates = FALSE;
+    llSetRemoteScriptAccessPin(0);
+    return;
+
+    @break;
+    list scriptInfo = [ llDumpList2String(llList2List(parts, 0, i - 1), " "), version ];
+    string scriptname = llList2String(scriptInfo, 0);
+    version = llList2String(scriptInfo, 1);
+
+    if(llGetStartParameter() == scrupPin) {
+        llOwnerSay(scriptname + " version " + version);
+        // Delete other scripts with the same name. As we just got started after
+        // an update, we should be the newest one.
+        i=0; do {
+            string found = llGetInventoryName(INVENTORY_SCRIPT, i);
+            if(found != llGetScriptName()) {
+                // debug("what shall we do with " + found);
+                integer match = llSubStringIndex(found, scriptname + " ");
+                if(match == 0) {
+                    llOwnerSay("deleting duplicate '" + found + "'");
+                    llRemoveInventory(found);
+                }
+            }
+        } while (i++ < llGetInventoryNumber(INVENTORY_SCRIPT)-1);
+    }
+
+    list params = [ "loginURI=" + osGetGridLoginURI(), "action=register",
+    "type=client", "linkkey=" + llGetKey(), "scriptname=" + scriptname,
+    "pin=" + scrupPin, "version=" + version, "scrupVersion=" + scrupVersion ];
+    scrupRequestID = llHTTPRequest(scrupURL, [HTTP_METHOD, "POST",
+    HTTP_MIMETYPE, "application/x-www-form-urlencoded"],
+    llDumpList2String(params, "&"));
+    llSetRemoteScriptAccessPin(scrupPin);
 }
 
 integer boolean(string val)
@@ -367,14 +405,12 @@ initTextures()
     }
     while (i < llGetListLength(activeSides));
 }
-debug(string message)
-{
-    llOwnerSay(message);
-}
+
 default
 {
     state_entry()
     {
+        scrup();
         channel = -25673 - (integer)llFrand(1000000);
         getConfig();
         initTextures();
@@ -383,42 +419,47 @@ default
         avatarDestinations = [];
         llSetTimerEvent(refreshTime);
         httpUserAgent=" HTTP/1.0\nUser-Agent: LSL Script (Mozilla Compatible)" + "\n\n";
-        if(sendSimInfo) httpSimInfo = llGetScriptName() + "/" + scriptVersion + " " + osGetGridGatekeeperURI() + ":" + llGetRegionName();
+        if(sendSimInfo) httpSimInfo = llGetScriptName() + "/" + version + " " + osGetGridGatekeeperURI() + ":" + llGetRegionName();
         doRequest();
     }
 
     http_response(key requestID, integer status, list metadata, string body)
     {
-        if(status==200) {
-            events = llParseString2List(body, ["\n"], []);
+        if(requestID == scrupRequestID) {
+            debug("client register response " + (string)status + "\n" + body);
+        }
+        if(requestID == httpRequest) {
+            if(status==200) {
+                events = llParseString2List(body, ["\n"], []);
 
-            // We don't use other meta information for now. We split them in prevision of future versions to ensure backwards compatibility between updated server export and outdated in-wolrd script
-            string metaRaw = llList2String(events, 0);
-            list meta = llParseString2List(metaRaw, ";", "");
-            list version = llParseString2List(llList2String(meta, 0), " ", "");
-            string remoteVersion = llList2String(version, 0);
-            version = llDeleteSubList(version, 0, 0);
-            string remoteMessage = llDumpList2String(version, " ");
-            meta = llDeleteSubList(meta, 0, 0);
+                // We don't use other meta information for now. We split them in prevision of future versions to ensure backwards compatibility between updated server export and outdated in-wolrd script
+                string metaRaw = llList2String(events, 0);
+                list meta = llParseString2List(metaRaw, ";", "");
+                list versionList = llParseString2List(llList2String(meta, 0), " ", "");
+                string remoteVersion = llList2String(version, 0);
+                versionList = llDeleteSubList(versionList, 0, 0);
+                string remoteMessage = llDumpList2String(versionList, " ");
+                meta = llDeleteSubList(meta, 0, 0);
 
-            events = llDeleteSubList(events, 0, 0);
-            if(updateWarning)
-            {
-                if(compareVersions(remoteVersion, scriptVersion) > 0)
-                {
-                    llOwnerSay(
-                    "A new version " + remoteVersion + " is available\n"
-                    + remoteMessage + "\n"
-                    + "Your version is " + scriptVersion + "\n"
-                    + "Head over to Speculoos.world:8002:Lab region to get the updated board."
-                    + " hop://speculoos.world:8002/Lab/128/128/22"
-                    + " or visit Kitely Market https://www.kitely.com/market/product/50129545");
-                }
+                // events = llDeleteSubList(events, 0, 0);
+                // if(updateWarning)
+                // {
+                //     if(compareVersions(remoteVersion, version) > 0)
+                //     {
+                //         llOwnerSay(
+                //         "A new version " + remoteVersion + " is available\n"
+                //         + remoteMessage + "\n"
+                //         + "Your version is " + version + "\n"
+                //         + "Head over to Speculoos.world:8002:Lab region to get the updated board."
+                //         + " hop://speculoos.world:8002/Lab/128/128/22"
+                //         + " or visit Kitely Market https://www.kitely.com/market/product/50129545");
+                //     }
+                // }
+
+                refreshTexture();
+            } else {
+                llOwnerSay("Unable to fetch event, status: "+(string)status);
             }
-
-            refreshTexture();
-        } else {
-            llOwnerSay("Unable to fetch event, status: "+(string)status);
         }
     }
 
@@ -512,8 +553,7 @@ default
         if(change & CHANGED_SHAPE ||
            change & CHANGED_SCALE ||
            change & CHANGED_OWNER ||
-           change & CHANGED_REGION ||
-           change & CHANGED_INVENTORY
+           change & CHANGED_REGION
            ) {
                llResetScript();
         }
