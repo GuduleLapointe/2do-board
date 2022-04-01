@@ -5,7 +5,7 @@
 // * Get the latest version in-world at Speculoos Lab:
 //      hop://speculoos.world:8002/Lab
 // * or from git repository
-//      https://git.magiiic.com/opensimulator/2do-board
+//      https://github.com/GuduleLapointe/2do-board
 //
 // Licence: GPLv3
 // © 2018-2019 Gudule Lapointe <gudule@speculoos.world>
