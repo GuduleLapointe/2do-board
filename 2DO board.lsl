@@ -16,7 +16,7 @@
 // They would be overridden by updates
 // Instead, update the  "Configuration" notecard inside the prim
 
-integer DEBUG = TRUE;
+integer DEBUG = FALSE;
 
 // string theme = "Terminal";
 integer showPastEvents = FALSE;
@@ -244,7 +244,7 @@ string tfGetAvatarDest(key agent)
 
 doRequest()
 {
-    string requestURL = "http://2do.pm/events/events.lsl2";
+    string requestURL = "https://2do.directory/events/events.php";
     if(sendSimInfo) requestURL+="?ref="+httpSimInfo;
     httpRequest = llHTTPRequest(requestURL + httpUserAgent, [HTTP_BODY_MAXLENGTH, 4096], "");
 }
