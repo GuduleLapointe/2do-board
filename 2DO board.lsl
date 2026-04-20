@@ -16,7 +16,7 @@
 // They would be overridden by updates
 // Instead, update the  "Configuration" notecard inside the prim
 
-integer DEBUG = FALSE;
+integer DEBUG = TRUE;
 
 // string theme = "Terminal";
 integer showPastEvents = FALSE;
