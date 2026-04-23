@@ -1,5 +1,6 @@
 // 2DO board
 //
+//
 // In-word teleporter board for 2DO events server.
 //
 // * Get the latest version in-world at Speculoos Lab:
@@ -16,7 +17,7 @@
 // They would be overridden by updates
 // Instead, update the  "Configuration" notecard inside the prim
 
-integer DEBUG = FALSE;
+integer DEBUG = TRUE;
 
 // string theme = "Terminal";
 integer showPastEvents = FALSE;
@@ -45,7 +46,18 @@ integer cellPadding = 0;
 integer bannerHeight = 90;
 integer textureWidth = 512;
 integer textureHeight = 512;
+//list activeSides = [ 0,1,2,3,4,5 ];
 list activeSides = [ 2,4 ];
+
+// Events source URL. Default points to 2do.directory public aggregator.
+// Override in Configuration notecard to use your own aggregator.
+string eventsURL = "https://2do.directory/events/events.php";
+
+// Set renderer="png" to use the server-side PNG board image instead of osDrawText.
+// ratio = board face width/height (e.g. 0.75 for a 1.5×2 m board, 1.0 for square).
+// Set ratio=0 to auto-detect from prim scale.
+string renderer = "";
+float ratio = 0.0;
 
 //////////////////////////
 // internal, do not touch:
@@ -79,6 +91,7 @@ debug(string message)
 }
 
 scrup() {
+	debug("checking available updates");
     string scrupVersion = "1.0.2";
     if(!scrupAllowUpdates)  {
         llSetRemoteScriptAccessPin(0);
@@ -173,6 +186,10 @@ getConfig() {
             else if (var == "hourFontName") hourFontName = (string)val;
             else if (var == "hourFontSize" && val!="") hourFontSize = (integer)val;
 
+            else if (var == "eventsURL" && val!="") eventsURL = (string)val;
+            else if (var == "renderer") renderer = llToLower((string)val);
+            else if (var == "ratio" && val!="") ratio = (float)val;
+
             else if (var == "backgroundColor") backgroundColor = (string)val;
             else if (var == "fontColor") fontColor = (string)val;
             else if (var == "colorPast") colorPast = (string)val;
@@ -181,10 +198,13 @@ getConfig() {
             else if (var == "colorToday") colorToday = (string)val;
             else if (var == "colorLater") colorLater = (string)val;
             else if (var == "colorHour") colorHour = (string)val;
+            else if (var == "activeSides" && val!="") activeSides = llParseString2List(val, [",","]","["," "], []);
         }
         if(backgroundColor == "transparent")
         backgroundColor = TEXTURE_TRANSPARENT;
     }
+
+    debug("renderer: " + renderer);
 
     if(hourFontName=="") hourFontName = mainFontName;
     if(fontColor=="") fontColor = "black";
@@ -242,11 +262,24 @@ string tfGetAvatarDest(key agent)
     return NULL_KEY;
 }
 
+float getFaceRatio(integer face)
+{
+    vector scale = llGetScale();
+    // TODO: check if object is a cube, otherwise return 1.0
+    // as nothing would make more sense untill proper calculation.
+
+    if (face == 0 || face == 5) return scale.x / scale.y;  // top, bottom
+    if (face == 1 || face == 3) return scale.x / scale.z;  // front, back
+    if (face == 2 || face == 4) return scale.y / scale.z;  // left, right
+
+    return 1.0;
+}
+
 doRequest()
 {
-    string requestURL = "https://2do.directory/events/events.php";
-    if(sendSimInfo) requestURL+="?ref="+httpSimInfo;
-    httpRequest = llHTTPRequest(requestURL + httpUserAgent, [HTTP_BODY_MAXLENGTH, 4096], "");
+    string url = eventsURL + "?format=lsl2";
+    if (sendSimInfo) url += "&ref=" + httpSimInfo;
+    httpRequest = llHTTPRequest(url + httpUserAgent, [HTTP_BODY_MAXLENGTH, 4096], "");
 }
 
 string tfTrimText(string in, string fontname, integer fontsize,integer width)
@@ -272,8 +305,57 @@ string tfTrimText(string in, string fontname, integer fontsize,integer width)
     return "";
 }
 
+refreshTexturePNG()
+{
+	debug("fetching texture from server)");
+    list sides = activeSides;
+    if (llListFindList(sides, [ALL_SIDES]) != -1)
+        sides = [0, 1, 2, 3, 4, 5];
+
+    string url;
+
+    string dynamicID = "";
+    string contentType = "image";
+    string extraParams = "width:" + (string)textureWidth + ",height:" + (string)textureHeight;
+    integer timer = 0;    // timer is not implemented yet in OSSL
+    integer alpha = 255;  // 0 = 100% Transparent 255 = 100% Solid
+    integer blend = TRUE; // TRUE = the newly generated texture is iBlended with the appropriate existing ones on the prim
+    integer disp = 2;     // 1 = expire deletes the old texture.  2 = temp means that it is not saved to the Database.
+
+   	debug("image " + url);
+    float faceRatio;
+    integer i = 0;
+    do
+    {
+        integer face = llList2Integer(activeSides, i);
+        if(ratio > 0) {
+        	faceRatio = ratio;
+        } else {
+        	faceRatio = getFaceRatio(face);
+        }
+        url = eventsURL + "?format=png"
+            + "&ratio=" + (string)faceRatio
+            + "&width=" + (string)textureWidth
+            + "&height=" + (string)textureHeight;
+        // TODO 1st step: get ratio for each face, not globally
+        // TODO 2nd step: take texture scale and rotation in account
+       	debug("updating face " + face +", ratio " + (string)faceRatio);
+
+        osSetDynamicTextureURLBlendFace( dynamicID, contentType, url, extraParams, blend, disp, timer, alpha, face );
+        i++;
+    }
+    while (i < llGetListLength(activeSides));
+}
+
 refreshTexture()
 {
+    if (renderer == "png") { refreshTexturePNG(); return; }
+    refreshTextureOsDraw();
+}
+
+refreshTextureOsDraw()
+{
+	debug("generate texture with OSSL osDraw");
     string commandList = "";
 
     eventIndices = [];
