@@ -58,7 +58,8 @@ string eventsURL = "https://2do.directory/events/events.php";
 // ratio = board face width/height (e.g. 0.75 for a 1.5×2 m board, 1.0 for square).
 // Set ratio=0 to auto-detect from prim scale.
 string renderer = "";
-float ratio = 0.0;
+float ratio = 0.0; // Leave 0.0 to calculate ratio from actual faces dimensions
+float ratioCap = 0.25; // Do not update face if ratio is extreme (side faces)
 
 //////////////////////////
 // internal, do not touch:
@@ -92,7 +93,7 @@ debug(string message)
 }
 
 scrup() {
-	debug("checking available updates");
+    debug("checking available updates");
     string scrupVersion = "1.0.2";
     if(!scrupAllowUpdates)  {
         llSetRemoteScriptAccessPin(0);
@@ -269,9 +270,9 @@ float getFaceRatio(integer face)
     if (primType == PRIM_TYPE_BOX) {
         vector scale = llGetScale();
         if (face == 0 || face == 5) return scale.x / scale.y;  // top, bottom
-	    if (face == 1 || face == 3) return scale.x / scale.z;  // front, back
-	    if (face == 2 || face == 4) return scale.y / scale.z;  // left, right
-	}
+        if (face == 1 || face == 3) return scale.x / scale.z;  // front, back
+        if (face == 2 || face == 4) return scale.y / scale.z;  // left, right
+    }
     return 1.0;
 }
 
@@ -307,7 +308,7 @@ string tfTrimText(string in, string fontname, integer fontsize,integer width)
 
 refreshTexturePNG()
 {
-	debug("fetching texture from server)");
+    debug("fetching texture from server)");
     list sides = activeSides;
     if (llListFindList(sides, [ALL_SIDES]) != -1)
         sides = [0, 1, 2, 3, 4, 5];
@@ -322,26 +323,27 @@ refreshTexturePNG()
     integer blend = TRUE; // TRUE = the newly generated texture is iBlended with the appropriate existing ones on the prim
     integer disp = 2;     // 1 = expire deletes the old texture.  2 = temp means that it is not saved to the Database.
 
-   	debug("image " + url);
+       debug("image " + url);
     float faceRatio;
     integer i = 0;
     do
     {
         integer face = llList2Integer(activeSides, i);
         if(ratio > 0) {
-        	faceRatio = ratio;
+            faceRatio = ratio;
         } else {
-        	faceRatio = getFaceRatio(face);
+            faceRatio = getFaceRatio(face);
         }
-        url = eventsURL + "?format=png"
+        if(ratioCap <= 0 || (faceRatio >= ratioCap && faceRatio <= 1/ratioCap)) {
+            debug("face " + face +", ratio " + (string)faceRatio);
+            url = eventsURL + "?format=png"
             + "&ratio=" + (string)faceRatio
             + "&width=" + (string)textureWidth
             + "&height=" + (string)textureHeight;
-        // TODO 1st step: get ratio for each face, not globally
-        // TODO 2nd step: take texture scale and rotation in account
-       	debug("updating face " + face +", ratio " + (string)faceRatio);
-
-        osSetDynamicTextureURLBlendFace( dynamicID, contentType, url, extraParams, blend, disp, timer, alpha, face );
+            osSetDynamicTextureURLBlendFace( dynamicID, contentType, url, extraParams, blend, disp, timer, alpha, face );
+         } else {
+            debug("ignoring face " + face +", ratio " + (string)faceRatio);
+        }
         i++;
     }
     while (i < llGetListLength(activeSides));
@@ -355,7 +357,7 @@ refreshTexture()
 
 refreshTextureOsDraw()
 {
-	debug("generate texture with OSSL osDraw");
+    debug("generate texture with OSSL osDraw");
     string commandList = "";
 
     eventIndices = [];
