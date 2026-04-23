@@ -269,6 +269,9 @@ string tfGetAvatarDest(key agent)
 
 float getFaceRatio(integer face)
 {
+	// Bypass calculation to honor custom ratio if configured
+    if (ratio > 0) return ratio;
+
     integer primType = llList2Integer(llGetPrimitiveParams([PRIM_TYPE]), 0);
     if (primType == PRIM_TYPE_BOX) {
         vector scale = llGetScale();
@@ -277,6 +280,15 @@ float getFaceRatio(integer face)
         if (face == 2 || face == 4) return scale.y / scale.z;  // left, right
     }
     return 1.0;
+}
+
+// Returns the face ratio if valid per ratioCap, or -1 to signal the face should be skipped.
+float getValidFaceRatio(integer face)
+{
+    float faceRatio = getFaceRatio(face);
+    if (ratioCap > 0 && (faceRatio < ratioCap || faceRatio > 1.0/ratioCap))
+        return -1;
+    return faceRatio;
 }
 
 doRequest()
@@ -311,7 +323,7 @@ string tfTrimText(string in, string fontname, integer fontsize,integer width)
 
 refreshTexturePNG()
 {
-    debug("fetching texture from server)");
+    debug("fetching texture from server " + eventsURL);
     list sides = activeSides;
     //if (llListFindList(sides, [ALL_SIDES]) != -1)
     //    sides = [0, 1, 2, 3, 4, 5];
@@ -326,26 +338,19 @@ refreshTexturePNG()
     integer blend = TRUE; // TRUE = the newly generated texture is iBlended with the appropriate existing ones on the prim
     integer disp = 2;     // 1 = expire deletes the old texture.  2 = temp means that it is not saved to the Database.
 
-       debug("image " + url);
-    float faceRatio;
     integer i = 0;
     do
     {
         integer face = llList2Integer(activeSides, i);
-        if(ratio > 0) {
-            faceRatio = ratio;
-        } else {
-            faceRatio = getFaceRatio(face);
-        }
-        if(ratioCap <= 0 || (faceRatio >= ratioCap && faceRatio <= 1/ratioCap)) {
-            debug("face " + face +", ratio " + (string)faceRatio);
+        float faceRatio = getValidFaceRatio(face);
+        if (faceRatio > 0) {
             url = eventsURL + "?format=png"
-            + "&ratio=" + (string)faceRatio
-            + "&width=" + (string)textureWidth
-            + "&height=" + (string)textureHeight;
-            osSetDynamicTextureURLBlendFace( dynamicID, contentType, url, extraParams, blend, disp, timer, alpha, face );
-         } else {
-            debug("ignoring face " + face +", ratio " + (string)faceRatio);
+                + "&ratio=" + (string)faceRatio
+                + "&width=" + (string)textureWidth
+                + "&height=" + (string)textureHeight;
+            osSetDynamicTextureURLBlendFace(dynamicID, contentType, url, extraParams, blend, disp, timer, alpha, face);
+        //} else {
+        //    debug("ignoring face " + face + ", ratio " + (string)getFaceRatio(face));
         }
         i++;
     }
@@ -483,19 +488,12 @@ tfGoToEvent(key avatar, integer eventIndex)
 }
 initTextures()
 {
-    float faceRatio;
     integer i = 0;
     do
     {
-    	integer face = llList2Integer(activeSides, i);
-	    if(ratio > 0) {
-	        faceRatio = ratio;
-	    } else {
-	        faceRatio = getFaceRatio(face);
-	    }
-	    if(ratioCap <= 0 || (faceRatio >= ratioCap && faceRatio <= 1/ratioCap)) {
-	        llSetTexture(initTKey, face);
-        }
+        integer face = llList2Integer(activeSides, i);
+        if (getValidFaceRatio(face) > 0)
+            llSetTexture(initTKey, face);
         i++;
     }
     while (i < llGetListLength(activeSides));
