@@ -46,8 +46,9 @@ integer cellPadding = 0;
 integer bannerHeight = 90;
 integer textureWidth = 512;
 integer textureHeight = 512;
-//list activeSides = [ 0,1,2,3,4,5 ];
-list activeSides = [ 2,4 ];
+//list activeSides = [ 2,4 ];
+list activeSides = [ 0,1,2,3,4,5 ];
+//list activeSides = ALL_SIDES; // Unless the object is a perfect cube, use explicit list instead
 
 // Events source URL. Default points to 2do.directory public aggregator.
 // Override in Configuration notecard to use your own aggregator.
@@ -264,14 +265,13 @@ string tfGetAvatarDest(key agent)
 
 float getFaceRatio(integer face)
 {
-    vector scale = llGetScale();
-    // TODO: check if object is a cube, otherwise return 1.0
-    // as nothing would make more sense untill proper calculation.
-
-    if (face == 0 || face == 5) return scale.x / scale.y;  // top, bottom
-    if (face == 1 || face == 3) return scale.x / scale.z;  // front, back
-    if (face == 2 || face == 4) return scale.y / scale.z;  // left, right
-
+    integer primType = llList2Integer(llGetPrimitiveParams([PRIM_TYPE]), 0);
+    if (primType == PRIM_TYPE_BOX) {
+        vector scale = llGetScale();
+        if (face == 0 || face == 5) return scale.x / scale.y;  // top, bottom
+	    if (face == 1 || face == 3) return scale.x / scale.z;  // front, back
+	    if (face == 2 || face == 4) return scale.y / scale.z;  // left, right
+	}
     return 1.0;
 }
 
