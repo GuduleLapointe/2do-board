@@ -170,37 +170,40 @@ getConfig() {
             list parse  = llParseStringKeepNulls (line, ["="],[]);
             string var = llStringTrim(llList2String(parse, 0), STRING_TRIM);
             string val = llStringTrim(llList2String(parse, 1), STRING_TRIM);
+            // Normalize key: lowercase, strip underscores — accepts old ALL_CAPS_UNDERSCORE and new camelCase
+            var = llToLower(llDumpList2String(llParseString2List(var, ["_"], []), ""));
             // if (var == "theme") theme = (string)val;
-            if (var == "showPastEvents") showPastEvents = boolean(val);
-            else if (var == "updateWarning") updateWarning = boolean(val);
-            else if (var == "sendSimInfo") sendSimInfo = boolean(val);
+            if (var == "showpastevents") showPastEvents = boolean(val);
+            else if (var == "updatewarning") updateWarning = boolean(val);
+            else if (var == "sendsiminfo") sendSimInfo = boolean(val);
 
-            else if (var == "textureWidth" && val!="") textureWidth = (integer)val;
-            else if (var == "textureHeight" && val!="") textureHeight = (integer)val;
-            else if (var == "logoURL") bannerURL = (string)val;
-            else if (var == "bannerURL") bannerURL = (string)val;
-            else if (var == "bannerHeight") bannerHeight = (integer)val;
-            else if (var == "lineHeight") lineHeight = (integer)val;
-            else if (var == "cellPadding") cellPadding = (integer)val;
+            else if (var == "texturewidth" && val!="") textureWidth = (integer)val;
+            else if (var == "textureheight" && val!="") textureHeight = (integer)val;
+            else if (var == "logourl") bannerURL = (string)val;
+            else if (var == "bannerurl") bannerURL = (string)val;
+            else if (var == "bannerheight") bannerHeight = (integer)val;
+            else if (var == "lineheight") lineHeight = (integer)val;
+            else if (var == "cellpadding") cellPadding = (integer)val;
 
-            else if (var == "mainFontName" && val!="") mainFontName = (string)val;
-            else if (var == "mainFontSize" && val!="") mainFontSize = (integer)val;
-            else if (var == "hourFontName") hourFontName = (string)val;
-            else if (var == "hourFontSize" && val!="") hourFontSize = (integer)val;
+            else if (var == "mainfontname" && val!="") mainFontName = (string)val;
+            else if (var == "mainfontsize" && val!="") mainFontSize = (integer)val;
+            else if (var == "hourfontname") hourFontName = (string)val;
+            else if (var == "hourfontsize" && val!="") hourFontSize = (integer)val;
 
-            else if (var == "eventsURL" && val!="") eventsURL = (string)val;
+            else if (var == "eventsurl" && val!="") eventsURL = (string)val;
             else if (var == "renderer") renderer = llToLower((string)val);
             else if (var == "ratio" && val!="") ratio = (float)val;
+            else if (var == "ratiocap" && val!="") ratioCap = (float)val;
 
-            else if (var == "backgroundColor") backgroundColor = (string)val;
-            else if (var == "fontColor") fontColor = (string)val;
-            else if (var == "colorPast") colorPast = (string)val;
-            else if (var == "colorStarted") colorStarted = (string)val;
-            else if (var == "colorSoon") colorSoon = (string)val;
-            else if (var == "colorToday") colorToday = (string)val;
-            else if (var == "colorLater") colorLater = (string)val;
-            else if (var == "colorHour") colorHour = (string)val;
-            else if (var == "activeSides" && val!="") activeSides = llParseString2List(val, [",","]","["," "], []);
+            else if (var == "backgroundcolor") backgroundColor = (string)val;
+            else if (var == "fontcolor") fontColor = (string)val;
+            else if (var == "colorpast") colorPast = (string)val;
+            else if (var == "colorstarted") colorStarted = (string)val;
+            else if (var == "colorsoon") colorSoon = (string)val;
+            else if (var == "colortoday") colorToday = (string)val;
+            else if (var == "colorlater") colorLater = (string)val;
+            else if (var == "colorhour") colorHour = (string)val;
+            else if (var == "activesides" && val!="") activeSides = llParseString2List(val, [",","]","["," "], []);
         }
         if(backgroundColor == "transparent")
         backgroundColor = TEXTURE_TRANSPARENT;
@@ -310,8 +313,8 @@ refreshTexturePNG()
 {
     debug("fetching texture from server)");
     list sides = activeSides;
-    if (llListFindList(sides, [ALL_SIDES]) != -1)
-        sides = [0, 1, 2, 3, 4, 5];
+    //if (llListFindList(sides, [ALL_SIDES]) != -1)
+    //    sides = [0, 1, 2, 3, 4, 5];
 
     string url;
 
@@ -480,11 +483,19 @@ tfGoToEvent(key avatar, integer eventIndex)
 }
 initTextures()
 {
+    float faceRatio;
     integer i = 0;
     do
     {
-        integer drawSide=llList2Integer(activeSides, i);
-        llSetTexture(initTKey, drawSide);
+    	integer face = llList2Integer(activeSides, i);
+	    if(ratio > 0) {
+	        faceRatio = ratio;
+	    } else {
+	        faceRatio = getFaceRatio(face);
+	    }
+	    if(ratioCap <= 0 || (faceRatio >= ratioCap && faceRatio <= 1/ratioCap)) {
+	        llSetTexture(initTKey, face);
+        }
         i++;
     }
     while (i < llGetListLength(activeSides));
