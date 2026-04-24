@@ -344,8 +344,9 @@ refreshTexturePNG()
         integer face = llList2Integer(activeSides, i);
         float faceRatio = getValidFaceRatio(face);
         if (faceRatio > 0) {
+            float ratioToSend = faceRatio * (float)textureHeight / (float)textureWidth;
             url = eventsURL + "?format=png"
-                + "&ratio=" + (string)faceRatio
+                + "&ratio=" + (string)ratioToSend
                 + "&width=" + (string)textureWidth
                 + "&height=" + (string)textureHeight;
             osSetDynamicTextureURLBlendFace(dynamicID, contentType, url, extraParams, blend, disp, timer, alpha, face);
