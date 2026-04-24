@@ -48,8 +48,8 @@ integer cellPadding = 0;
 integer bannerHeight = 90;
 integer textureWidth = 512;
 integer textureHeight = 512;
-//list activeSides = [ 2,4 ];
-list activeSides = [ 0,1,2,3,4,5 ];
+list activeSides = [ 2,4 ];
+//list activeSides = [ 0,1,2,3,4,5 ];
 //list activeSides = ALL_SIDES; // Unless the object is a perfect cube, use explicit list instead
 
 // Set renderer="png" to use the server-side PNG board image instead of osDrawText.
@@ -186,45 +186,45 @@ getConfig() {
 		list lines = llParseString2List (data,["\n"],[]);
 		integer i; for (i=0;i<llGetListLength (lines);i++)
 		{
-		string line = llList2String(lines,i);
-		list parse  = llParseStringKeepNulls (line, ["="],[]);
-		string var = llStringTrim(llList2String(parse, 0), STRING_TRIM);
-		string val = llStringTrim(llList2String(parse, 1), STRING_TRIM);
-		// Normalize key: lowercase, strip underscores — accepts old ALL_CAPS_UNDERSCORE and new camelCase
-		var = llToLower(llDumpList2String(llParseString2List(var, ["_"], []), ""));
-		// if (var == "theme") theme = (string)val;
-		if (var == "showpastevents") showPastEvents = boolean(val);
-		else if (var == "updatewarning") updateWarning = boolean(val);
-		else if (var == "sendsiminfo") sendSimInfo = boolean(val);
+			string line = llList2String(lines,i);
+			list parse  = llParseStringKeepNulls (line, ["="],[]);
+			string var = llStringTrim(llList2String(parse, 0), STRING_TRIM);
+			string val = llStringTrim(llList2String(parse, 1), STRING_TRIM);
+			// Normalize key: lowercase, strip underscores — accepts old ALL_CAPS_UNDERSCORE and new camelCase
+			var = llToLower(llDumpList2String(llParseString2List(var, ["_"], []), ""));
+			// if (var == "theme") theme = (string)val;
+			if (var == "showpastevents") showPastEvents = boolean(val);
+			else if (var == "updatewarning") updateWarning = boolean(val);
+			else if (var == "sendsiminfo") sendSimInfo = boolean(val);
 
-		else if (var == "texturewidth" && val!="") textureWidth = (integer)val;
-		else if (var == "textureheight" && val!="") textureHeight = (integer)val;
-		else if (var == "logourl") bannerImageURL = (string)val;
-		else if (var == "bannerImageURL") bannerImageURL = (string)val;
-		else if (var == "bannerheight") bannerHeight = (integer)val;
-		else if (var == "lineheight") lineHeight = (integer)val;
-		else if (var == "cellpadding") cellPadding = (integer)val;
+			else if (var == "texturewidth" && val!="") textureWidth = (integer)val;
+			else if (var == "textureheight" && val!="") textureHeight = (integer)val;
+			else if (var == "logourl") bannerImageURL = (string)val;
+			else if (var == "bannerImageURL") bannerImageURL = (string)val;
+			else if (var == "bannerheight") bannerHeight = (integer)val;
+			else if (var == "lineheight") lineHeight = (integer)val;
+			else if (var == "cellpadding") cellPadding = (integer)val;
 
-		else if (var == "mainfontname" && val!="") mainFontName = (string)val;
-		else if (var == "mainfontsize" && val!="") mainFontSize = (integer)val;
-		else if (var == "hourfontname") hourFontName = (string)val;
-		else if (var == "hourfontsize" && val!="") hourFontSize = (integer)val;
+			else if (var == "mainfontname" && val!="") mainFontName = (string)val;
+			else if (var == "mainfontsize" && val!="") mainFontSize = (integer)val;
+			else if (var == "hourfontname") hourFontName = (string)val;
+			else if (var == "hourfontsize" && val!="") hourFontSize = (integer)val;
 
-		else if (var == "eventsurl" && val!="") eventsURL = (string)val;
-		else if (var == "renderer") renderer = llToLower((string)val);
-		else if (var == "ratio" && val!="") ratio = (float)val;
-		else if (var == "ratiocap" && val!="") ratioCap = (float)val;
+			else if (var == "eventsurl" && val!="") eventsURL = (string)val;
+			else if (var == "renderer") renderer = llToLower((string)val);
+			else if (var == "ratio" && val!="") ratio = (float)val;
+			else if (var == "ratiocap" && val!="") ratioCap = (float)val;
 
-		else if (var == "backgroundcolor") backgroundColor = (string)val;
-		else if (var == "fontcolor") fontColor = (string)val;
-		else if (var == "colorpast") colorPast = (string)val;
-		else if (var == "colorstarted") colorStarted = (string)val;
-		else if (var == "colorsoon") colorSoon = (string)val;
-		else if (var == "colortoday") colorToday = (string)val;
-		else if (var == "colorlater") colorLater = (string)val;
-		else if (var == "colorhour") colorHour = (string)val;
-		else if (var == "activesides" && val!="") activeSides = llParseString2List(val, [",","]","["," "], []);
-		else if (var == "teleportmethod" && val!="") teleportMethod = (string)val;
+			else if (var == "backgroundcolor") backgroundColor = (string)val;
+			else if (var == "fontcolor") fontColor = (string)val;
+			else if (var == "colorpast") colorPast = (string)val;
+			else if (var == "colorstarted") colorStarted = (string)val;
+			else if (var == "colorsoon") colorSoon = (string)val;
+			else if (var == "colortoday") colorToday = (string)val;
+			else if (var == "colorlater") colorLater = (string)val;
+			else if (var == "colorhour") colorHour = (string)val;
+			else if (var == "activesides" && val!="") activeSides = llParseString2List(val, [",","]","["," "], []);
+			else if (var == "teleportmethod" && val!="") teleportMethod = (string)val;
 		}
 		if (backgroundColor == "transparent") {
 			backgroundColor = TEXTURE_TRANSPARENT;
@@ -515,17 +515,18 @@ refreshTextureOsDraw()
 	}
 	while (i < llGetListLength(activeSides));
 
-	// Build clickmap for the classic renderer (UV fractions from top, 0=top 1=bottom)
+	// Build clickmap for the classic renderer (UV fractions, 0=top 1=bottom)
+	// Format: x0,y0,x1,y1,destination  — destination is "host:port Region" or "href:url"
 	float bannerFrac = (float)bannerHeight / (float)textureHeight;
-	string clickmapLines = "~0.0~" + (string)bannerFrac + "\n";  // banner sentinel (empty teleportURL)
+	string clickmapLines = "0,0.0,1," + (string)bannerFrac + ",href:" + bannerLink + "\n";
 	integer numShown = llGetListLength(eventIndices);
 	integer ei;
 	for (ei = 0; ei < numShown; ei++) {
 		float rowY0 = bannerFrac + (float)ei * (float)lineHeight / (float)textureHeight;
 		float rowY1 = rowY0 + (float)lineHeight / (float)textureHeight;
 		integer evIdx = llList2Integer(eventIndices, ei);
-		string teleportURL = llList2String(events, evIdx * 3 + 2);
-		clickmapLines += teleportURL + "~" + (string)rowY0 + "~" + (string)rowY1 + "\n";
+		string destination = llList2String(events, evIdx * 3 + 2);
+		clickmapLines += "0," + (string)rowY0 + ",1," + (string)rowY1 + "," + destination + "\n";
 	}
 	integer existing = llListFindList(clickmapRatios, ["osdraw"]);
 	if (existing != -1) {
@@ -536,18 +537,15 @@ refreshTextureOsDraw()
 	}
  }
 
-openWebPage(key avatar)
+openWebPage(key avatar, string url)
 {
-	if(DEBUG) {
-		debug("openWebPage → " + bannerLink);
-		return;
-	}
-	llLoadURL(avatar, "Visit 2DO.pm/events for a detailed full list of upcoming events.", bannerLink);
+	debug("openWebPage → " + url);
+	llLoadURL(avatar, "Visit 2DO.pm/events for a detailed full list of upcoming events.", url);
 }
 
 teleportRoute(key avatar, string teleportURL)
 {
-	debug("teleportRoute → " + teleportURL);
+	//debug("teleportRoute → " + teleportURL);
 	if(teleportMethod == "map") {
 		teleportMap(teleportURL);
 		return;
@@ -715,7 +713,7 @@ default
 			key avatar = llDetectedKey(i);
 
 			if (link != llGetLinkNumber()) {
-				debug("ignore other prim link " + (string)link);
+				//debug("ignore other prim link " + (string)link);
 				return;
 			}
 			if (point == TOUCH_INVALID_TEXCOORD) {
@@ -727,7 +725,8 @@ default
 				return;
 			}
 
-			// UV fraction from top (0=top, 1=bottom); llDetectedTouchST returns <s,t,0>, t=.y
+			// UV fractions from top-left; llDetectedTouchST returns <s,t,0> (s=U, t=V from bottom)
+			float touchU = llDetectedTouchST(i).x;
 			float touchV = 1.0 - llDetectedTouchST(i).y;
 			string ratioKey;
 
@@ -748,7 +747,7 @@ default
 				return;
 			}
 
-			debug("touch face=" + (string)face + " V=" + (string)touchV + " ratio=" + ratioKey);
+			string debugDetails = " face=" + (string)face + " U=" + (string)touchU + " V=" + (string)touchV + " ratio=" + ratioKey;
 			list clickmapLines = llParseString2List(llList2String(clickmapData, clickmapIdx), ["\n"], []);
 			integer li;
 			for (li = 0; li < llGetListLength(clickmapLines); li++) {
@@ -756,25 +755,28 @@ default
 				if (clickmapLine == "") {
 					// skip trailing newline — not an error
 				} else {
-					list parts = llParseString2List(clickmapLine, ["~"], []);
-					if (llGetListLength(parts) < 3) {
-						debug("invalid clickmap line: [" + clickmapLine + "]");
-					} else {
+					// Format: x0,y0,x1,y1,destination
+					list parts = llCSV2List(clickmapLine);
+					if (llGetListLength(parts) >= 5) {
+						float rowX0 = (float)llList2String(parts, 0);
 						float rowY0 = (float)llList2String(parts, 1);
-						float rowY1 = (float)llList2String(parts, 2);
-						if (touchV >= rowY0 && touchV <= rowY1) {
-							string teleportURL = llList2String(parts, 0);
-							if (teleportURL == "") {
-								openWebPage(avatar);
+						float rowX1 = (float)llList2String(parts, 2);
+						float rowY1 = (float)llList2String(parts, 3);
+						string destination = llList2String(parts, 4);
+						if (touchU >= rowX0 && touchU <= rowX1 && touchV >= rowY0 && touchV <= rowY1) {
+							if (llGetSubString(destination, 0, 4) == "href:") {
+								openWebPage(avatar, llGetSubString(destination, 5, -1));
 							} else {
-								teleportRoute(avatar, teleportURL);
+								teleportRoute(avatar, destination);
 							}
 							return;
 						}
+					} else {
+						debug("invalid clickmap line: [" + clickmapLine + "]" + debugDetails);
 					}
 				}
 			}
-			debug("not a clickable region (face=" + (string)face + " V=" + (string)touchV + ")");
+			//debug("not a clickable region (face=" + (string)face + " U=" + (string)touchU + " V=" + (string)touchV + ")" + debugDetails);
 		}
 	}
 
