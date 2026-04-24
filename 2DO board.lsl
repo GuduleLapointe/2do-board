@@ -21,7 +21,7 @@ integer DEBUG = TRUE;
 
 // string theme = "Terminal";
 integer showPastEvents = FALSE;
-string bannerURL = "http://2do.pm/events/banner-black.png";
+string bannerURL = "https://2do.directory/events/banner-black.png";
 string backgroundColor = "ff000000";
 string fontColor = "ff33ff33";
 string colorPast = "";
