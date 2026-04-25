@@ -194,7 +194,8 @@ getConfig() {
 			// Normalize key: lowercase, strip underscores — accepts old ALL_CAPS_UNDERSCORE and new camelCase
 			string var = llToLower(llDumpList2String(llParseString2List(configVar, ["_"], []), ""));
 
-			string val = llStringTrim(llList2String(parse, 1), STRING_TRIM);
+			// Rejoin from index 1 onward so values containing "=" (e.g. query-string URLs) are preserved
+		string val = llStringTrim(llDumpList2String(llList2List(parse, 1, -1), "="), STRING_TRIM);
 
 			// Process parameters
 
