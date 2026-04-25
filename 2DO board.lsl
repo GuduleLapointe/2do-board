@@ -223,9 +223,18 @@ getConfig() {
 			else if (var == "colortoday") colorToday = (string)val;
 			else if (var == "colorlater") colorLater = (string)val;
 			else if (var == "colorhour") colorHour = (string)val;
-			else if (var == "activesides" && val!="") activeSides = llParseString2List(val, [",","]","["," "], []);
 			else if (var == "teleportmethod" && val!="") teleportMethod = (string)val;
+			else if (var == "activesides" && val!="") {
+				list sides = llParseString2List(val, [",","]","["," "], []);
+				activeSides = [];
+				integer s;
+				for (s=0;s<llGetListLength(sides); ++s) {
+					activeSides += [llList2Integer(sides, s)];
+				}
+			}
 		}
+		debug("active sides: " + llDumpList2String(activeSides, "; "));
+
 		if (backgroundColor == "transparent") {
 			backgroundColor = TEXTURE_TRANSPARENT;
 		}
@@ -624,9 +633,9 @@ default
 
 	http_response(key requestID, integer status, list metadata, string body)
 	{
-		if(requestID == scrupRequestID) {
-			debug("client register response " + (string)status + "\n" + body);
-		}
+		//if(requestID == scrupRequestID) {
+		//	debug("client register response " + (string)status + "\n" + body);
+		//}
 
 		integer clickmapIdx = llListFindList(clickmapRequests, [requestID]);
 		if (clickmapIdx != -1) {
