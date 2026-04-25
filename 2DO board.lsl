@@ -340,9 +340,9 @@ refreshEvents()
 		refreshTexturePNG();
 		return;
 	}
-	string url = eventsURL; // api/format not specified, must work with default
+	string url = eventsURL + "?api=v3&width=" + (string)textureWidth + "&height=" + (string)textureHeight;
 	if (sendSimInfo) url += "&ref=" + httpSimInfo;
-	httpRequest = llHTTPRequest(url + httpUserAgent, [HTTP_BODY_MAXLENGTH, 4096], "");
+	httpRequest = llHTTPRequest(url + httpUserAgent, [HTTP_BODY_MAXLENGTH, 16384], "");
 }
 
 string trimText(string in, string fontname, integer fontsize,integer width)
@@ -461,14 +461,14 @@ refreshTextureOsDraw()
 	commandList = osSetPenSize(commandList, 1);
 	// commandList = osDrawLine(commandList, 0, 80, 512, 80);
 
-	integer numEvents = llGetListLength(events)/3;
+	// stride-4: [title, start_time, start_stamp, destination, ...]
+	integer numEvents = llGetListLength(events) / 4;
 
 	integer i;
 
 	integer y = bannerHeight;
 
 	integer secondMargin = 10 + hourFontSize * 7;
-	// rough estimation, but it works quite well
 
 	integer notBefore = llGetUnixTime() - (2*3600);
 	integer currentTime = llGetUnixTime();
@@ -476,27 +476,19 @@ refreshTextureOsDraw()
 	integer numEventsShown = 0;
 
 	for(i=0;i<numEvents && numEventsShown<15;i++) {
-		integer base = i*3;
+		integer base = i * 4;
 
-		// this is a ~-seperated list of time specifiers
-		// it has 6 fields, but may be extended with more fields in the
-		// future
-		// fields are start-time~start-date~start-timestamp~end-time~end-date~end-timestamp
-		// timestamps are seconds since the unix epoch (January 1st 1970, 00:00 UTC)
-		string timeSpecifier = llList2String(events, base+1);
-		list timeParsed = llParseString2List(timeSpecifier, ["~"], []);
+		integer startStamp = (integer)llList2String(events, base + 2);
 
-
-		if (showPastEvents || llList2Integer(timeParsed, 2) > notBefore) {
+		if (showPastEvents || startStamp > notBefore) {
 			eventIndices += i;
-			integer startTime = llList2Integer(timeParsed, 2);
-			if (startTime < currentTime - 3600) {
+			if (startStamp < currentTime - 3600) {
 				commandList = osSetPenColor(commandList, colorPast);
-			} else if (startTime < currentTime) {
+			} else if (startStamp < currentTime) {
 				commandList = osSetPenColor(commandList, colorStarted);
-			} else if (startTime < currentTime + 4 * 3600) {
+			} else if (startStamp < currentTime + 4 * 3600) {
 				commandList = osSetPenColor(commandList, colorSoon);
-			} else if (startTime < currentTime + 24 * 3600) {
+			} else if (startStamp < currentTime + 24 * 3600) {
 				commandList = osSetPenColor(commandList, colorToday);
 			} else {
 				commandList = osSetPenColor(commandList, colorLater);
@@ -504,7 +496,7 @@ refreshTextureOsDraw()
 			commandList = osMovePen(commandList, 10, y + 1 + cellPadding);
 			commandList = osSetFontName(commandList, hourFontName);
 			commandList = osSetFontSize(commandList, hourFontSize);
-			commandList = osDrawText(commandList, llList2String(timeParsed, 0));
+			commandList = osDrawText(commandList, llList2String(events, base + 1));
 
 			string text = llList2String(events, base);
 			text = trimText(text, mainFontName, mainFontSize, textureWidth - 30 - secondMargin);
@@ -543,7 +535,7 @@ refreshTextureOsDraw()
 		float rowY0 = bannerFrac + (float)ei * (float)lineHeight / (float)textureHeight;
 		float rowY1 = rowY0 + (float)lineHeight / (float)textureHeight;
 		integer evIdx = llList2Integer(eventIndices, ei);
-		string destination = llList2String(events, evIdx * 3 + 2);
+		string destination = llList2String(events, evIdx * 4 + 3);
 		clickmapLines += "0," + (string)rowY0 + ",1," + (string)rowY1 + "," + destination + "\n";
 	}
 	integer existing = llListFindList(clickmapRatios, ["osdraw"]);
@@ -667,7 +659,9 @@ default
 
 		if(requestID == httpRequest) {
 			if(status==200) {
-				// v3 list: one CSV line per event — name,timespec,destination
+				// v3 format: x0,y0,x1,y1,destination,start_time,start_stamp,end_time,end_stamp,title
+				// stride-4 events list: [title, start_time, start_stamp, destination, ...]
+				// Banner rows (destination starts with "href:") are skipped — kept in clickmap only
 				list lines = llParseString2List(body, ["\n"], []);
 				events = [];
 				integer li;
@@ -675,8 +669,16 @@ default
 					string line = llList2String(lines, li);
 					if (line != "") {
 						list parts = llCSV2List(line);
-						if (llGetListLength(parts) >= 3) {
-							events += [llList2String(parts, 0), llList2String(parts, 1), llList2String(parts, 2)];
+						if (llGetListLength(parts) >= 10) {
+							string dest = llList2String(parts, 4);
+							if (llGetSubString(dest, 0, 4) != "href:") {
+								events += [
+									llList2String(parts, 9),  // title
+									llList2String(parts, 5),  // start_time
+									llList2String(parts, 6),  // start_stamp
+									dest                      // destination
+								];
+							}
 						}
 					}
 				}
