@@ -52,10 +52,10 @@ list activeSides = [ 2,4 ];
 //list activeSides = [ 0,1,2,3,4,5 ];
 //list activeSides = ALL_SIDES; // Unless the object is a perfect cube, use explicit list instead
 
-// Set renderer="png" to use the server-side PNG board image instead of osDrawText.
+// Set renderer="v3" to use the server-side PNG board image instead of osDrawText.
 // ratio = board face width/height (e.g. 0.75 for a 1.5×2 m board, 1.0 for square).
 // Set ratio=0 to auto-detect from prim scale.
-string renderer = "";
+string renderer = ""; // {v3|v2} (default png)
 float ratio = 0.0; // Leave 0.0 to calculate ratio from actual faces dimensions
 float ratioCap = 0.25; // Do not update face if ratio is extreme (side faces)
 
@@ -188,10 +188,14 @@ getConfig() {
 		{
 			string line = llList2String(lines,i);
 			list parse  = llParseStringKeepNulls (line, ["="],[]);
-			string var = llStringTrim(llList2String(parse, 0), STRING_TRIM);
-			string val = llStringTrim(llList2String(parse, 1), STRING_TRIM);
+			string configVar = llStringTrim(llList2String(parse, 0), STRING_TRIM);
 			// Normalize key: lowercase, strip underscores — accepts old ALL_CAPS_UNDERSCORE and new camelCase
-			var = llToLower(llDumpList2String(llParseString2List(var, ["_"], []), ""));
+			string var = llToLower(llDumpList2String(llParseString2List(configVar, ["_"], []), ""));
+
+			string val = llStringTrim(llList2String(parse, 1), STRING_TRIM);
+
+			// Process parameters
+
 			// if (var == "theme") theme = (string)val;
 			if (var == "showpastevents") showPastEvents = boolean(val);
 			else if (var == "updatewarning") updateWarning = boolean(val);
@@ -231,10 +235,15 @@ getConfig() {
 				for (s=0;s<llGetListLength(sides); ++s) {
 					activeSides += [llList2Integer(sides, s)];
 				}
+			} else {
+				debug("Unsupported parameter " + configVar + " = " + (string)val);
 			}
 		}
 		debug("active sides: " + llDumpList2String(activeSides, "; "));
 
+		if (renderer == "") {
+			renderer = "v3";
+		}
 		if (backgroundColor == "transparent") {
 			backgroundColor = TEXTURE_TRANSPARENT;
 		}
@@ -327,7 +336,7 @@ refreshEvents()
 {
 	clickmapRatios = [];
 	clickmapData   = [];
-	if (renderer == "png") {
+	if (renderer == "v3") {
 		refreshTexturePNG();
 		return;
 	}
@@ -739,7 +748,7 @@ default
 			float touchV = 1.0 - llDetectedTouchST(i).y;
 			string ratioKey;
 
-			if (renderer == "png") {
+			if (renderer == "v3") {
 				float faceRatio = getValidFaceRatio(face);
 				if (faceRatio <= 0) {
 					debug("invalid face ratio " + (string)faceRatio);
