@@ -244,7 +244,10 @@ getConfig() {
 		}
 		debug("active sides: " + llDumpList2String(activeSides, "; "));
 
-		if (renderer == "") {
+		// Sanitize render method
+		if (renderer == "v2" || renderer == "lsl2" || renderer == "osdraw") {
+			renderer = "osdraw";
+		} else {
 			renderer = "server";
 		}
 		if (backgroundColor == "transparent") {
@@ -339,14 +342,14 @@ refreshEvents()
 {
 	eventsDataRatios = [];
 	eventsData       = [];
-	if (renderer == "server") {
-		refreshTexturePNG();
+	if (renderer == "osdraw") {
+		// Ask server for a flat list (positions=0, up to limit events)
+		string url = eventsURL + querySep(eventsURL) + "renderer=osdraw";
+		if (sendSimInfo) url += "&ref=" + httpSimInfo;
+		httpRequest = llHTTPRequest(url + httpUserAgent, [HTTP_BODY_MAXLENGTH, 16384], "");
 		return;
 	}
-	// osDraw: ask server for a flat list (positions=0, up to limit events)
-	string url = eventsURL + querySep(eventsURL) + "renderer=osdraw";
-	if (sendSimInfo) url += "&ref=" + httpSimInfo;
-	httpRequest = llHTTPRequest(url + httpUserAgent, [HTTP_BODY_MAXLENGTH, 16384], "");
+	refreshTexturePNG();
 }
 
 string trimText(string in, string fontname, integer fontsize,integer width)
@@ -792,15 +795,15 @@ default
 			float touchV = 1.0 - llDetectedTouchST(i).y;
 			string ratioKey;
 
-			if (renderer == "server") {
+			if (renderer == "osdraw") {
+				ratioKey = "osdraw";
+			} else {
 				float faceRatio = getValidFaceRatio(face);
 				if (faceRatio <= 0) {
 					debug("invalid face ratio " + (string)faceRatio);
 					return;
 				}
 				ratioKey = (string)(faceRatio * (float)textureHeight / (float)textureWidth);
-			} else {
-				ratioKey = "osdraw";
 			}
 
 			integer evDataIdx = llListFindList(eventsDataRatios, [ratioKey]);
