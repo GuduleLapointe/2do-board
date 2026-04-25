@@ -340,7 +340,7 @@ refreshEvents()
 		refreshTexturePNG();
 		return;
 	}
-	string url = eventsURL + "?format=lsl2";
+	string url = eventsURL; // api/format not specified, must work with default
 	if (sendSimInfo) url += "&ref=" + httpSimInfo;
 	httpRequest = llHTTPRequest(url + httpUserAgent, [HTTP_BODY_MAXLENGTH, 4096], "");
 }
@@ -405,7 +405,7 @@ refreshTexturePNG()
 		// save some time (or not). Make sure to send only one request per ratio
 		if(llListFindList(clickmapRequests, [faceRatio]) < 0) {
 			//debug("request clickmap for ratio " + faceRatio + " (" + renderRatio + ")");
-			string clickmapURL = eventsURL + "?format=clickmap" + queryArgs;
+			string clickmapURL = eventsURL + "?api=v3" + queryArgs;
 			key clickmapRequestID = llHTTPRequest(clickmapURL + httpUserAgent, [HTTP_BODY_MAXLENGTH, 16384], "");
 			clickmapRequests += [clickmapRequestID,faceRatio];
 		}
@@ -667,32 +667,19 @@ default
 
 		if(requestID == httpRequest) {
 			if(status==200) {
-				events = llParseString2List(body, ["\n"], []);
-
-				// We don't use other meta information for now. We split them in prevision of future versions to ensure backwards compatibility between updated server export and outdated in-wolrd script
-				string metaRaw = llList2String(events, 0);
-				list meta = llParseString2List(metaRaw, ";", "");
-				list versionList = llParseString2List(llList2String(meta, 0), " ", "");
-				string remoteVersion = llList2String(version, 0);
-				versionList = llDeleteSubList(versionList, 0, 0);
-				string remoteMessage = llDumpList2String(versionList, " ");
-				meta = llDeleteSubList(meta, 0, 0);
-
-				events = llDeleteSubList(events, 0, 0);
-				// if(updateWarning)
-				// {
-				//	if(compareVersions(remoteVersion, version) > 0)
-				//	{
-				//		llOwnerSay(
-				//		"A new version " + remoteVersion + " is available\n"
-				//		+ remoteMessage + "\n"
-				//		+ "Your version is " + version + "\n"
-				//		+ "Head over to Speculoos.world:8002:Lab region to get the updated board."
-				//		+ " hop://speculoos.world:8002/Lab/128/128/22"
-				//		+ " or visit Kitely Market https://www.kitely.com/market/product/50129545");
-				//	}
-				// }
-
+				// v3 list: one CSV line per event — name,timespec,destination
+				list lines = llParseString2List(body, ["\n"], []);
+				events = [];
+				integer li;
+				for (li = 0; li < llGetListLength(lines); li++) {
+					string line = llList2String(lines, li);
+					if (line != "") {
+						list parts = llCSV2List(line);
+						if (llGetListLength(parts) >= 3) {
+							events += [llList2String(parts, 0), llList2String(parts, 1), llList2String(parts, 2)];
+						}
+					}
+				}
 				refreshTexture();
 			} else {
 				llOwnerSay("Unable to fetch event, status: "+(string)status);
