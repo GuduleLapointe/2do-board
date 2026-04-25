@@ -344,7 +344,7 @@ refreshEvents()
 		return;
 	}
 	// osDraw: ask server for a flat list (positions=0, up to limit events)
-	string url = eventsURL + "?renderer=osdraw";
+	string url = eventsURL + querySep(eventsURL) + "renderer=osdraw";
 	if (sendSimInfo) url += "&ref=" + httpSimInfo;
 	httpRequest = llHTTPRequest(url + httpUserAgent, [HTTP_BODY_MAXLENGTH, 16384], "");
 }
@@ -399,13 +399,14 @@ refreshTexturePNG()
 
 			// Clickmap: one request per unique ratio (v3 with canvas layout)
 			if (llListFindList(clickmapRequests, [ratioStr]) < 0) {
-				string clickmapURL = eventsURL + "?" + canvasArgs;
+				string sep = querySep(eventsURL);
+				string clickmapURL = eventsURL + sep + canvasArgs;
 				key cmReqID = llHTTPRequest(clickmapURL + httpUserAgent, [HTTP_BODY_MAXLENGTH, 16384], "");
 				clickmapRequests += [cmReqID, ratioStr];
 			}
 
 			// PNG texture
-			string pngURL = eventsURL + "?format=png&" + canvasArgs;
+			string pngURL = eventsURL + querySep(eventsURL) + "format=png&" + canvasArgs;
 			osSetDynamicTextureURLBlendFace(dynamicID, contentType, pngURL, extraParams, blend, disp, timer, alpha, face);
 		}
 		i++;
@@ -582,6 +583,12 @@ teleportMap(string teleportURL) {
 
 string strReplace(string str, string search, string replace) {
     return llDumpList2String(llParseStringKeepNulls((str),[search],[]),replace);
+}
+
+// Return "?" or "&" depending on whether url already has a query string.
+string querySep(string url) {
+    if (llSubStringIndex(url, "?") != -1) return "&";
+    return "?";
 }
 
 // Parse v3 CSV body into stride-10 events list.
