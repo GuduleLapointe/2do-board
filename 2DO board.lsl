@@ -539,7 +539,7 @@ openWebPage(key avatar, string url)
 	llLoadURL(avatar, "Visit 2DO.pm/events for a detailed full list of upcoming events.", url);
 }
 
-teleportRoute(key avatar, string teleportURL)
+teleportRoute(key avatar, string teleportURL, string title)
 {
 	//debug("teleportRoute → " + teleportURL);
 	if(teleportMethod == "map") {
@@ -550,10 +550,12 @@ teleportRoute(key avatar, string teleportURL)
 		return;
 	}
 
-	//debug("teleportDialog → " + teleportURL);
-	// No direct tp/map, require dialog confirmation
+	// Dialog confirmation — show title (full, possibly un-truncated) above the URL
 	setAvatarDest(avatar, teleportURL);
-	llDialog(avatar, "\n" + teleportURL + "\n\n", ["Teleport", "Cancel"], channel);
+	string msg = "\n";
+	if (title != "") msg += title + "\n";
+	msg += teleportURL + "\n\n";
+	llDialog(avatar, msg, ["Teleport", "Cancel"], channel);
 	if(listening==0) {
 		listenHandle = llListen(channel, "", NULL_KEY, "");
 		listening = (integer)llGetTime();
@@ -825,7 +827,7 @@ default
 						if (llGetSubString(destination, 0, 4) == "href:") {
 							openWebPage(avatar, llGetSubString(destination, 5, -1));
 						} else {
-							teleportRoute(avatar, destination);
+							teleportRoute(avatar, destination, llList2String(parts, 9));
 						}
 						return;
 					}
