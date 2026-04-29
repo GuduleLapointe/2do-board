@@ -62,7 +62,7 @@ string apiURL = "https://2do.directory/api/v3/events";
 // Events source URL {v2 or v3 compatible events list} (default: 2do API events)
 // Leave empty to use default events from API
 // Override in Configuration notecard to use a custom source with v2 API.
-string eventsURL; // Ignored in API v3, leave apiURL empty to use  custom source
+string eventsURL; // Ignored in API v3, leave apiURL empty to use  custom sourcestring eventsURL = "https://2do.directory/api/v3/events/lsl";   // Official v3 URL
 //string eventsURL = "https://2do.directory/api/v3/events/lsl";   // Official v3 URL
 //string eventsURL = "https://2do.directory/api/v2/events/lsl";	// Official v2 URL
 //string eventsURL = "https://2do.directory/events/events.lsl2"; // Legacy URL
@@ -290,7 +290,9 @@ getConfig() {
 	}
 
 	// Now make sur renderer is compatible
-	string checkEventsURL = eventsURL; // TODO: remove query canvasArgs
+	string checkEventsURL = eventsURL;
+	integer qIdx = llSubStringIndex(eventsURL, "?");
+	if (qIdx != -1) checkEventsURL = llGetSubString(eventsURL, 0, qIdx - 1);
 	if(renderer == "server" && checkEventsURL != (apiURL + "/lsl") && checkEventsURL != fallbackEventsURL) {
 		llOwnerSay("ERROR: Fallback to osdraw, custom source " + eventsURL + " not compatible with server-side rendering");
 		renderer = "osdraw";
