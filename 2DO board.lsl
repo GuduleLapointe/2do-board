@@ -24,14 +24,14 @@ integer showPastEvents = FALSE;
 
 string teleportMethod = "teleport"; // {dialog|map|teleport} // Default dialog
 
-string backgroundColor = "ff000000";
-string fontColor = "ff33ff33";
-string colorPast = "";
-string colorStarted = "";
-string colorSoon = "";
-string colorToday = "";
-string colorLater = "";
-string colorHour = "";
+string backgroundColor = "white";
+string fontColor = "black";
+string colorPast = "lightGray";
+string colorStarted = "darkGreen";
+string colorSoon = "darkBlue";
+string colorToday = "darkmagenta";
+string colorLater = "darkGray";
+string colorHour = "black";
 
 string mainFontName = "Junction";
 integer mainFontSize=16;
@@ -52,29 +52,40 @@ list activeSides = [ 2,4 ];
 //list activeSides = [ 0,1,2,3,4,5 ];
 //list activeSides = ALL_SIDES; // Unless the object is a perfect cube, use explicit list instead
 
-// Set renderer="v3" to use the server-side PNG board image instead of osDrawText.
+// API URL. Provides events list and server-side board image rendering
+// Leave empty to use legacy v2 API
+string apiURL = "https://2do.directory/api/v3/events";
+//string apiURL;
+
+// Events source URL.
+// Leave empty to use default events from API
+// Override in Configuration notecard to use a custom source with v2 API.
+string eventsURL; // Ignored in API v3, leave apiURL empty to use  custom source
+//string eventsURL = "https://2do.directory/api/v3/events";   // Official v3 URL
+//string eventsURL = "https://2do.directory/api/v2/events";	// Official v2 URL
+//string eventsURL = "https://2do.directory/events/events.lsl2"; // Legacy URL
+
+// Set renderer="server" to use v3 server-side PNG board image instead of osDrawText.
 // ratio = board face width/height (e.g. 0.75 for a 1.5×2 m board, 1.0 for square).
 // Set ratio=0 to auto-detect from prim scale.
 string renderer = ""; // {server|osdraw} (default server)
+
 float ratio = 0.0; // Leave 0.0 to calculate ratio from actual faces dimensions
 float ratioCap = 0.25; // Do not update face if ratio is extreme (side faces)
 
-// Events source URL. Default points to 2do.directory public aggregator.
-// Override in Configuration notecard to use your own source.
-string eventsURL = "https://2do.directory/events/events.php";
+string bannerLink = "https://2do.directory/";
+string bannerImageURL = "https://2do.directory/events-dev/2do-logo.png";
 
-//////////////////////////
-// internal, do not touch:
+// ========================
+// internals, do not modify
 
-string bannerLink = "https://2do.directory/events/";
-string bannerImageURL = "https://2do.directory/events/banner-black.png";
-
-string CONFIG_FILE = "Configuration";
-
-key initTKey="7fca4681-d388-4d69-971a-d884b4586f22";
+// Constants
+string configFile = "Configuration";
+key initImageKey="7fca4681-d388-4d69-971a-d884b4586f22";
 vector defaultLandingPoint = <128.0, 128.0, 23.0>;
 vector defaultLookAt = <1.0, 1.0, 0.0>;
 
+// Live data, will be overridden
 string gatekeeperURI;
 list events;
 list eventIndices;
@@ -86,15 +97,6 @@ string httpSimInfo;
 string httpUserAgent;
 list avatarDestinations = [];
 float touchStarted;
-
-// Change only in your master script
-string scrupURL = "https://speculoos.world/scrup/scrup.php"; // Change to your scrup.php URL
-integer scrupPin = 56748; // Change or not, it shouldn't hurt
-integer scrupAllowUpdates = TRUE; // should always be true, except for debug
-
-// Do not change below
-string scrupRequestID;
-string version;
 
 // Event data — parallel lists keyed by ratioStr ("osdraw", "1.0", "0.5", …)
 // Each entry is a v3 CSV body with real x0,y0,x1,y1 positions.
@@ -108,6 +110,18 @@ list textureIDs	= [];
 
 // Inflight per-ratio requests — strided list [requestKey, ratioStr, …]
 list clickmapRequests = [];
+
+// ==========================
+// Automatic updates provider
+
+// Change only in your master script
+string scrupURL = "https://speculoos.world/scrup/scrup.php"; // Change to your scrup.php URL
+integer scrupPin = 56748; // Change or not, it shouldn't hurt
+integer scrupAllowUpdates = TRUE; // should always be true, except for debug
+
+// Do not change below
+string scrupRequestID;
+string version;
 
 debug(string message)
 {
@@ -183,8 +197,8 @@ integer boolean(string val)
 }
 
 getConfig() {
-	if(llGetInventoryType(CONFIG_FILE) == INVENTORY_NOTECARD) {
-		string data = osGetNotecard(CONFIG_FILE);
+	if(llGetInventoryType(configFile) == INVENTORY_NOTECARD) {
+		string data = osGetNotecard(configFile);
 		list lines = llParseString2List (data,["\n"],[]);
 		integer i; for (i=0;i<llGetListLength (lines);i++)
 		{
@@ -207,7 +221,7 @@ getConfig() {
 			else if (var == "texturewidth" && val!="") textureWidth = (integer)val;
 			else if (var == "textureheight" && val!="") textureHeight = (integer)val;
 			else if (var == "logourl") bannerImageURL = (string)val;
-			else if (var == "bannerImageURL") bannerImageURL = (string)val;
+			else if (var == "bannerimageurl") bannerImageURL = (string)val;
 			else if (var == "bannerheight") bannerHeight = (integer)val;
 			else if (var == "lineheight") lineHeight = (integer)val;
 			else if (var == "cellpadding") cellPadding = (integer)val;
@@ -242,29 +256,34 @@ getConfig() {
 			//	debug("Unsupported parameter " + configVar + " = " + (string)val);
 			}
 		}
-		debug("active sides: " + llDumpList2String(activeSides, "; "));
 
-		// Sanitize render method
-		if (renderer == "v2" || renderer == "lsl2" || renderer == "osdraw") {
-			renderer = "osdraw";
-		} else {
-			renderer = "server";
-		}
-		if (backgroundColor == "transparent") {
-			backgroundColor = TEXTURE_TRANSPARENT;
-		}
 	}
 
+	debug("active sides: " + llDumpList2String(activeSides, "; "));
+
+	// Set eventsURL
+	if(eventsURL == "" || apiURL != "") {
+ 		if( apiURL != "") {
+			eventsURL = apiURL + "/lsl";
+		} else {
+			eventsURL = "https://2do.directory/api/v3/events/lsl";
+		}
+	}
+	debug("events URL "  + eventsURL);
+
+	// Sanitize render method
+	if (renderer == "v2" || renderer == "lsl2" || renderer == "osdraw" || apiURL == "") {
+		renderer = "osdraw";
+	} else {
+		renderer = "server";
+	}
+	debug("renderer " + renderer);
+	if (backgroundColor == "transparent") {
+		backgroundColor = TEXTURE_TRANSPARENT;
+	}
 	debug("renderer: " + renderer);
 
 	if(hourFontName=="") hourFontName = mainFontName;
-	if(fontColor=="") fontColor = "black";
-	if(colorPast=="") colorPast = fontColor;
-	if(colorStarted=="") colorStarted = fontColor;
-	if(colorSoon=="") colorSoon = colorStarted;
-	if(colorToday=="") colorToday = colorStarted;
-	if(colorLater=="") colorLater = colorToday;
-	if(colorHour=="") colorHour = fontColor;
 }
 
 //
@@ -409,7 +428,9 @@ refreshTexturePNG()
 			}
 
 			// PNG texture
-			string pngURL = eventsURL + querySep(eventsURL) + "format=png&" + canvasArgs;
+			//string pngURL = eventsURL + querySep(eventsURL) + "format=png&" + canvasArgs;
+			string pngURL = apiURL + "/board.png?" + canvasArgs;
+			debug("pngURL " + pngURL);
 			osSetDynamicTextureURLBlendFace(dynamicID, contentType, pngURL, extraParams, blend, disp, timer, alpha, face);
 		}
 		i++;
@@ -459,22 +480,30 @@ refreshTextureOsDraw()
 
 		if (showPastEvents || startStamp > notBefore) {
 			eventIndices += i;
-			if (startStamp < currentTime - 3600) {
-				commandList = osSetPenColor(commandList, colorPast);
-			} else if (startStamp < currentTime) {
-				commandList = osSetPenColor(commandList, colorStarted);
-			} else if (startStamp < currentTime + 4 * 3600) {
-				commandList = osSetPenColor(commandList, colorSoon);
-			} else if (startStamp < currentTime + 24 * 3600) {
-				commandList = osSetPenColor(commandList, colorToday);
+			string currentColor;
+			if (colorPast != "" && startStamp < currentTime - 3600) {
+				currentColor = colorPast;
+			} else if (colorStarted != "" && startStamp < currentTime) {
+				currentColor = colorStarted;
+			} else if (colorSoon != "" && startStamp < currentTime + 4 * 3600) {
+				currentColor = colorSoon;
+			} else if (colorToday != "" && startStamp < currentTime + 24 * 3600) {
+				currentColor = colorToday;
 			} else {
-				commandList = osSetPenColor(commandList, colorLater);
+				currentColor = fontColor;
 			}
+
 			commandList = osMovePen(commandList, 10, y + 1 + cellPadding);
+			if(colorHour != "") {
+				commandList = osSetPenColor(commandList, colorHour);
+			} else {
+				commandList = osSetPenColor(commandList, currentColor);
+			}
 			commandList = osSetFontName(commandList, hourFontName);
 			commandList = osSetFontSize(commandList, hourFontSize);
 			commandList = osDrawText(commandList, llList2String(events, base + 5));
 
+			commandList = osSetPenColor(commandList, currentColor);
 			string text = llList2String(events, base + 9);
 			text = trimText(text, mainFontName, mainFontSize, textureWidth - 30 - secondMargin);
 			commandList = osMovePen(commandList, secondMargin, y + cellPadding);
@@ -678,7 +707,7 @@ initTextures()
 	{
 		integer face = llList2Integer(activeSides, i);
 		if (getValidFaceRatio(face) > 0) {
-			llSetTexture(initTKey, face);
+			llSetTexture(initImageKey, face);
 		}
 		i++;
 	}
@@ -731,9 +760,9 @@ default
 
 		if(requestID == httpRequest) {
 			debug("received data for raw events list");
+			string firstLine = llList2String(llParseString2List(body, ["\n"], [""]), 0);
 			if(status==200) {
 				// Auto-detect format: first non-empty line with a comma → v3 CSV; otherwise → lsl2
-				string firstLine = llList2String(llParseString2List(body, ["\n"], [""]), 0);
 				if (llSubStringIndex(firstLine, ",") != -1) {
 					events = parseV3(body);
 				} else {
@@ -742,7 +771,64 @@ default
 				// stride-10: [x0, y0, x1, y1, destination, start_time, start_stamp, end_time, end_stamp, title]
 				refreshTexture();
 			} else {
-				llOwnerSay("Unable to fetch event, status: "+(string)status);
+				// TODO: proper error parser to optimize error display on board
+				// for both osdraw and server-side renderers
+				llOwnerSay("Unable to fetch  events from " + eventsURL
+				+ "\nstatus: " + (string)status
+				+ "\nmessage: " + (string)body);
+				// TODO: handle error messages in parseV3 and parseLsl2
+				integer currentTime = llGetUnixTime();
+				string message;
+				string statusStr = (string)status;
+				if(llSubStringIndex(body, "{") == 0) {
+					if(llSubStringIndex(body, "\"message\"") >= 0) {
+						message = llJsonGetValue(body, ["message"]);
+					}
+					if(llSubStringIndex(body, "\"error\"") >= 0) {
+						statusStr += " " + llJsonGetValue(body, ["error"]);
+					}
+				}
+				if(message == "") {
+					message = firstLine;
+				}
+				events = [
+					0, 0, 0, 0,
+					"",  // destination, not implemented in v2
+					"",  // start_time
+					currentTime + 24 * 3600,  // start_stamp
+					"",  // end_time
+					currentTime + 24 * 3600 * 2,  // end_stamp
+					"Error " + statusStr,
+					0, 0, 0, 0,
+					"",
+					"",  // start_time
+					currentTime + 24 * 3600,  // start_stamp
+					"00:00PM",  // end_time
+					currentTime + 24 * 3600 * 2,  // end_stamp
+					message,
+					0, 0, 0, 0,
+					"",
+					"",  // start_time
+					currentTime + 24 * 3600,  // start_stamp
+					"00:00PM",  // end_time
+					currentTime + 24 * 3600 * 2,  // end_stamp
+					"",
+					0, 0, 0, 0,
+					"speculoos.world:8002:Lab",
+					"",  // start_time
+					currentTime + 24 * 3600,  // start_stamp
+					"00:00PM",  // end_time
+					currentTime + 24 * 3600 * 2,  // end_stamp
+					"Latest 2do board at Speculoos lab",
+					0, 0, 0, 0,
+					"https://2do.directory",
+					"",  // start_time
+					currentTime + 24 * 3600,  // start_stamp
+					"00:00PM",  // end_time
+					currentTime + 24 * 3600 * 2,  // end_stamp
+					"https://2do.directory"
+				];
+				refreshTexture();
 			}
 		}
 	}
