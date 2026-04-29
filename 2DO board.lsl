@@ -29,9 +29,9 @@ string fontColor = "black";
 string colorPast = "lightGray";
 string colorStarted = "darkGreen";
 string colorSoon = "darkBlue";
-string colorToday = "darkmagenta";
-string colorLater = "darkGray";
-string colorHour = "black";
+string colorToday = "gray";
+string colorLater = "ligthGray";
+string colorHour = "darkMagenta";
 
 string mainFontName = "Junction";
 integer mainFontSize=16;
@@ -52,17 +52,19 @@ list activeSides = [ 2,4 ];
 //list activeSides = [ 0,1,2,3,4,5 ];
 //list activeSides = ALL_SIDES; // Unless the object is a perfect cube, use explicit list instead
 
-// API URL. Provides events list and server-side board image rendering
+// API URL. {v3 API compatible URL|empty}
+//Provides events list and/or server-side board image rendering
+// Needed for server-side board image rendering
 // Leave empty to use legacy v2 API
 string apiURL = "https://2do.directory/api/v3/events";
 //string apiURL;
 
-// Events source URL.
+// Events source URL {v2 or v3 compatible events list} (default: 2do API events)
 // Leave empty to use default events from API
 // Override in Configuration notecard to use a custom source with v2 API.
 string eventsURL; // Ignored in API v3, leave apiURL empty to use  custom source
-//string eventsURL = "https://2do.directory/api/v3/events";   // Official v3 URL
-//string eventsURL = "https://2do.directory/api/v2/events";	// Official v2 URL
+//string eventsURL = "https://2do.directory/api/v3/events/lsl";   // Official v3 URL
+//string eventsURL = "https://2do.directory/api/v2/events/lsl";	// Official v2 URL
 //string eventsURL = "https://2do.directory/events/events.lsl2"; // Legacy URL
 
 // Set renderer="server" to use v3 server-side PNG board image instead of osDrawText.
@@ -261,27 +263,44 @@ getConfig() {
 
 	debug("active sides: " + llDumpList2String(activeSides, "; "));
 
+	// Sanitize renderer, apiURL and eventsURL
+
+	// eventsURL	| apiURL	| result
+	// empty/v3		| set		| eventsURL = apiURL + "/lsl", renderer untouched
+	// empty/v3		| empty		| eventsURL = apiURL + "/lsl", renderer untouched
+	// custom		| set 		| eventsURL untouched, renderer osdraw
+	// custom		| empty		| eventsURL untouched, renderer untouched
+
 	// Set eventsURL
-	if(eventsURL == "" || apiURL != "") {
- 		if( apiURL != "") {
+	string fallbackEventsURL = "https://2do.directory/api/v3/events/lsl";
+	if(eventsURL == "") {
+		if( apiURL != "") {
 			eventsURL = apiURL + "/lsl";
 		} else {
-			eventsURL = "https://2do.directory/api/v3/events/lsl";
+			eventsURL = fallbackEventsURL;
 		}
 	}
 	debug("events URL "  + eventsURL);
 
-	// Sanitize render method
+	// First set default renderer unless valid option
 	if (renderer == "v2" || renderer == "lsl2" || renderer == "osdraw" || apiURL == "") {
 		renderer = "osdraw";
 	} else {
 		renderer = "server";
 	}
+
+	// Now make sur renderer is compatible
+	string checkEventsURL = eventsURL; // TODO: remove query canvasArgs
+	if(renderer == "server" && checkEventsURL != (apiURL + "/lsl") && checkEventsURL != fallbackEventsURL) {
+		llOwnerSay("ERROR: Fallback to osdraw, custom source " + eventsURL + " not compatible with server-side rendering");
+		renderer = "osdraw";
+	}
+
 	debug("renderer " + renderer);
+
 	if (backgroundColor == "transparent") {
 		backgroundColor = TEXTURE_TRANSPARENT;
 	}
-	debug("renderer: " + renderer);
 
 	if(hourFontName=="") hourFontName = mainFontName;
 }
@@ -485,7 +504,7 @@ refreshTextureOsDraw()
 				currentColor = colorPast;
 			} else if (colorStarted != "" && startStamp < currentTime) {
 				currentColor = colorStarted;
-			} else if (colorSoon != "" && startStamp < currentTime + 4 * 3600) {
+			} else if (colorSoon != "" && startStamp < currentTime + 2 * 3600) {
 				currentColor = colorSoon;
 			} else if (colorToday != "" && startStamp < currentTime + 24 * 3600) {
 				currentColor = colorToday;
