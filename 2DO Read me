@@ -1,24 +1,96 @@
 2DO board
 =========
 
-In-word teleporter board for 2DO events server.
+Version 3.0.0
+In-world teleporter board for 2DO events server.
 
 Get the latest version
 * in-world at Speculoos Lab: speculoos.world:8002:Lab
 * or from Kitely Market: https://www.kitely.com/market/product/50129545
 
-The board features a list of ongoing and upcoming events on dozens of grids.
-You can teleport to the event place by clicking on it.
-A click on the banner opens the full calendar on the website  http://2do.pm/events/
+The board fetches upcoming events from 2do.directory (or a self-hosted aggregator).
+Touch an event row to teleport to the event location.
+A click on the banner opens the full calendar at https://2do.directory/
+
 
 Installation
 -------------
-* Just rez the object... and let the magic happen
-* For versions other than Demo, a Configuration notecard is available
+* Just rez the object and let the magic happen.
+* A "Configuration" notecard can be added for customization (see below).
+
+
+Rendering modes
+----------------
+* Server renderer (default): the server generates a PNG image of the board.
+  Currently only available with default API v3 events source.
+* OSdraw renderer: the board draws text locally using osDrawText.
+  Use renderer=osdraw to enable. Falls back automatically for custom sources.
+
+
+Configuration
+-------------
+Create a notecard named "Configuration" inside the prim.
+Keys are case-insensitive. Both camelCase and ALL_CAPS_UNDERSCORE are accepted.
+For better performance, limit the configuration to the keys with actual custom
+values, avoid keeping default values or comments in the notecard.
+Some layout configurations might not yet be supported with server-side rendering.
+
+eventsURL = https://yourgrid.org/events.php
+//  Custom events source URL (osdraw-compatible). Leave empty to use the official API.
+renderer = server
+//  server  → server-side PNG image (API v3, default)
+//  osdraw  → client-side LSL text renderer
+refreshTime = 1800
+//  Refresh interval in seconds.
+showPastEvents = FALSE
+//  Set TRUE to include events that have ended recently.
+activeSides = 2,4
+//  Comma-separated list of prim face numbers to apply the board to.
+ratio = 0
+//  Face aspect ratio (width/height). 0 = auto-detect from prim scale.
+ratioCap = 0.25
+//  Faces with ratio outside [ratioCap, 1/ratioCap] are skipped (extreme side faces).
+textureWidth = 512
+textureHeight = 512
+//  Texture resolution in pixels. Must be powers of two (256, 512, 1024…).
+
+bannerImageURL = https://yourgrid.org/banner.png
+//  URL of the banner/logo image.
+bannerHeight = 90
+//  Banner area height in pixels.
+
+backgroundColor = white
+fontColor = black
+colorPast = lightGray
+colorStarted = darkGreen
+colorSoon = darkBlue
+colorToday = gray
+colorLater = lightGray
+colorHour = darkMagenta
+
+//  Font availability depends on fonts installed on the simulator, not the viewer.
+mainFontName = Junction
+mainFontSize = 16
+hourFontName =
+hourFontSize = 12
+lineHeight = 28
+cellPadding = 0
+
+teleportMethod = dialog
+//  dialog    → confirmation dialog before teleporting (default)
+//  teleport  → direct teleport
+//  map       → open map
+
+updateWarning = TRUE
+//  Set FALSE to suppress update notifications.
+
+sendSimInfo = FALSE
+//  Set TRUE to send simulator info to the aggregator with each request.
+//	Info received by the server are used only for statistical purposes.
 
 Licence and copyright
 ---------------------
-(c) 2018-2019 Gudule Lapointe <gudule@speculoos.world>.
+(c) 2018-2026 Gudule Lapointe <gudule@speculoos.world>.
 Based on the initial work of Tom Frost <tomfrost@linkwater.org>.
 
 Licence: GPLv3

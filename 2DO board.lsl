@@ -1,6 +1,6 @@
 // 2DO board
 //
-// Version: 3.0.0
+// Version: 3.0.1
 //
 // In-word teleporter board for 2DO events server.
 //
@@ -23,7 +23,7 @@ integer DEBUG = TRUE;
 // string theme = "Terminal";
 integer showPastEvents = FALSE;
 
-string teleportMethod = "teleport"; // {dialog|map|teleport} // Default dialog
+string teleportMethod = "dialog"; // {dialog|map|teleport}
 
 string backgroundColor = "white";
 string fontColor = "black";
@@ -31,7 +31,7 @@ string colorPast = "lightGray";
 string colorStarted = "darkGreen";
 string colorSoon = "darkBlue";
 string colorToday = "gray";
-string colorLater = "ligthGray";
+string colorLater = "lightGray";
 string colorHour = "darkMagenta";
 
 string mainFontName = "Junction";
