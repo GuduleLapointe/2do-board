@@ -1,0 +1,59 @@
+// Save this as a notecard named "Configuration" inside the prim.
+// Uncomment the needed keys, leave empty or comment for default values.
+
+// Lines beginning with // or # are ignored. Keys are case-insensitive.
+// Both camelCase and SCREAMING_SNAKE_CASE are accepted. Some layout
+// configurations might not yet be supported with server-side rendering.
+
+#eventsURL = https://yourgrid.org/events.php
+//  Custom events source URL (osdraw-compatible). Leave empty to use the official API.
+#renderer = server
+//  server  → server-side PNG image (API v3, default)
+//  osdraw  → client-side LSL text renderer
+#refreshTime = 1800
+//  Refresh interval in seconds.
+#showPastEvents = FALSE
+//  Set TRUE to include events that have ended recently.
+#activeSides = 2,4
+//  Comma-separated list of prim face numbers to apply the board to.
+#ratio = 0
+//  Face aspect ratio (width/height). 0 = auto-detect from prim scale.
+#ratioCap = 0.25
+//  Faces with ratio outside [ratioCap, 1/ratioCap] are skipped (extreme side faces).
+#textureWidth = 512
+#textureHeight = 512
+//  Texture resolution in pixels. Must be powers of two (256, 512, 1024…).
+
+#bannerImageURL = https://yourgrid.org/banner.png
+//  URL of the banner/logo image.
+#bannerHeight = 90
+//  Banner area height in pixels.
+
+#backgroundColor = white
+#fontColor = black
+#colorPast = lightGray
+#colorStarted = darkGreen
+#colorSoon = darkBlue
+#colorToday = gray
+#colorLater = lightGray
+#colorHour = darkMagenta
+
+//  Font availability depends on fonts installed on the simulator, not the viewer.
+#mainFontName = Junction
+#mainFontSize = 16
+#hourFontName =
+#hourFontSize = 12
+#lineHeight = 28
+#cellPadding = 0
+
+#teleportMethod = dialog
+//  dialog    → confirmation dialog before teleporting (default)
+//  teleport  → direct teleport
+//  map       → open map
+
+#updateWarning = TRUE
+//  Set FALSE to suppress update notifications.
+
+#sendSimInfo = FALSE
+//  Set TRUE to send simulator info to the aggregator with each request.
+//	Info received by the server are used only for statistical purposes.

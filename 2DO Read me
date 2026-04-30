@@ -15,6 +15,9 @@ A click on the banner opens the full calendar at https://2do.directory/
 
 Installation
 -------------
+* Configure your OpenSimulator [OSSL] section to allow the required
+  functions to PARCEL_GROUP_MEMBER, PARCEL_OWNER, ESTATE_MANAGER and/or
+  ESTATE_OWNER (see the list of required functions in the script)
 * Just rez the object and let the magic happen.
 * A "Configuration" notecard can be added for customization (see below).
 
@@ -30,63 +33,8 @@ Rendering modes
 Configuration
 -------------
 Create a notecard named "Configuration" inside the prim.
-Keys are case-insensitive. Both camelCase and ALL_CAPS_UNDERSCORE are accepted.
-For better performance, limit the configuration to the keys with actual custom
-values, avoid keeping default values or comments in the notecard.
-Some layout configurations might not yet be supported with server-side rendering.
+See `2DO Configuration Example` for a full list of available keys and their defaults.
 
-eventsURL = https://yourgrid.org/events.php
-//  Custom events source URL (osdraw-compatible). Leave empty to use the official API.
-renderer = server
-//  server  → server-side PNG image (API v3, default)
-//  osdraw  → client-side LSL text renderer
-refreshTime = 1800
-//  Refresh interval in seconds.
-showPastEvents = FALSE
-//  Set TRUE to include events that have ended recently.
-activeSides = 2,4
-//  Comma-separated list of prim face numbers to apply the board to.
-ratio = 0
-//  Face aspect ratio (width/height). 0 = auto-detect from prim scale.
-ratioCap = 0.25
-//  Faces with ratio outside [ratioCap, 1/ratioCap] are skipped (extreme side faces).
-textureWidth = 512
-textureHeight = 512
-//  Texture resolution in pixels. Must be powers of two (256, 512, 1024…).
-
-bannerImageURL = https://yourgrid.org/banner.png
-//  URL of the banner/logo image.
-bannerHeight = 90
-//  Banner area height in pixels.
-
-backgroundColor = white
-fontColor = black
-colorPast = lightGray
-colorStarted = darkGreen
-colorSoon = darkBlue
-colorToday = gray
-colorLater = lightGray
-colorHour = darkMagenta
-
-//  Font availability depends on fonts installed on the simulator, not the viewer.
-mainFontName = Junction
-mainFontSize = 16
-hourFontName =
-hourFontSize = 12
-lineHeight = 28
-cellPadding = 0
-
-teleportMethod = dialog
-//  dialog    → confirmation dialog before teleporting (default)
-//  teleport  → direct teleport
-//  map       → open map
-
-updateWarning = TRUE
-//  Set FALSE to suppress update notifications.
-
-sendSimInfo = FALSE
-//  Set TRUE to send simulator info to the aggregator with each request.
-//	Info received by the server are used only for statistical purposes.
 
 Licence and copyright
 ---------------------

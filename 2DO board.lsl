@@ -10,8 +10,24 @@
 //	https://github.com/GuduleLapointe/2do-board
 //
 // Licence: GPLv3
-// © 2018-2019 Gudule Lapointe <gudule@speculoos.world>
-//   Initial project author: Tom Frost <tomfrost@linkwater.org>
+// © 2018-2026 Gudule Lapointe <gudule@speculoos.world>
+//	Initial script by Tom Frost <tomfrost@linkwater.org>
+
+////////////////////////////
+// The following functions must be enabled in the OpenSimulator [OSSL] section.
+// (allow_osFunctioName = ...)
+//	osDraw (osDrawImage, osDrawLine, osDrawText, osGetDrawStringSize)
+//	osGetGridGatekeeperURI,
+//	osGetGridLoginURI
+//	osGetNotecard
+//	osMovePen
+//	osSetDynamicTextureDataBlendFace
+//	osSetDynamicTextureURLBlendFace
+//	osSetFontName
+//	osSetFontSize
+//	osSetPenColor
+//	osSetPenSize
+//	osTeleportAgent
 
 ////////////////////////////
 // DO NOT MOFIFY VALUES HERE
