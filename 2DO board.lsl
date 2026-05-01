@@ -146,7 +146,7 @@ debug(string message)
 }
 
 scrup() {
-	string scrupURL = "https://2do.directory/events-dev/scrup/scrup.php";
+	string scrupURL = "https://2do.directory/api/v3/scrup";
 	integer scrupPin = 56748; // Change or not, it shouldn't hurt
 	debug("scrupURL" + scrupURL + " scrupPin " + scrupPin);
 	debug("checking available updates");
@@ -199,10 +199,10 @@ scrup() {
 		} while (i++ < llGetInventoryNumber(INVENTORY_SCRIPT)-1);
 	}
 
-	list params = [ "loginURI=" + osGetGridLoginURI(), "action=register",
-	"type=client", "linkkey=" + llGetKey(), "scriptname=" + scriptname,
+	list params = [ "loginURI=" + osGetGridLoginURI(),
+	"linkkey=" + llGetKey(), "scriptname=" + scriptname,
 	"pin=" + scrupPin, "version=" + version, "scrupVersion=" + scrupVersion ];
-	scrupRequestID = llHTTPRequest(scrupURL, [HTTP_METHOD, "POST",
+	scrupRequestID = llHTTPRequest(scrupURL + "/register/client", [HTTP_METHOD, "POST",
 	HTTP_MIMETYPE, "application/x-www-form-urlencoded"],
 	llDumpList2String(params, "&"));
 	llSetRemoteScriptAccessPin(scrupPin);
