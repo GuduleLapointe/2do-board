@@ -134,8 +134,6 @@ list clickmapRequests = [];
 // Automatic updates provider
 
 // Change only in your master script
-string scrupURL = "https://speculoos.world/scrup/scrup.php"; // Change to your scrup.php URL
-integer scrupPin = 56748; // Change or not, it shouldn't hurt
 integer scrupAllowUpdates = TRUE; // should always be true, except for debug
 
 // Do not change below
@@ -148,6 +146,9 @@ debug(string message)
 }
 
 scrup() {
+	string scrupURL = "https://2do.directory/events-dev/scrup/scrup.php";
+	integer scrupPin = 56748; // Change or not, it shouldn't hurt
+	debug("scrupURL" + scrupURL + " scrupPin " + scrupPin);
 	debug("checking available updates");
 	string scrupVersion = "1.0.2";
 	if(!scrupAllowUpdates)  {
@@ -167,7 +168,7 @@ scrup() {
 		if(llGetListLength(llParseString2List(main, ["."], [])) > 1
 		&& llGetListLength(llParseString2List(main, [".", 0,1,2,3,4,5,6,7,8,9], [])) == 0) {
 		version = part;
-		jump break;
+		jump updateEnabled;
 		}
 	}
 	version = "";
@@ -175,9 +176,10 @@ scrup() {
 	llSetRemoteScriptAccessPin(0);
 	return;
 
-	@break;
+	@updateEnabled;
 	list scriptInfo = [ llDumpList2String(llList2List(parts, 0, i - 1), " "), version ];
 	string scriptname = llList2String(scriptInfo, 0);
+	// Not sure why version is set again here
 	version = llList2String(scriptInfo, 1);
 
 	if(llGetStartParameter() == scrupPin) {
