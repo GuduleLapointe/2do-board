@@ -1,6 +1,6 @@
-// 2DO board
+// 2DO board dev
 //
-// Version: 3.0.4
+string version = "3.0.5";
 //
 // In-word teleporter board for 2DO events server.
 //
@@ -34,7 +34,7 @@
 // They would be overridden by updates
 // Instead, update the  "Configuration" notecard inside the prim
 
-integer DEBUG = TRUE;
+integer DEBUG = FALSE;
 
 // string theme = "Terminal";
 integer showPastEvents = FALSE;
@@ -56,7 +56,9 @@ integer mainFontSize=16;
 string hourFontName = "";
 integer hourFontSize = 12;
 
-float refreshTime = 1800;
+float refreshTime = 1800; // In seconds, 1800 = 30 minutes. Lower values for debug only.
+float listenTimeout = 300; // Clear llDialog
+
 integer updateWarning = TRUE;
 integer sendSimInfo = FALSE;
 
@@ -75,7 +77,7 @@ float ratio = 0.0; // Leave 0.0 to calculate ratio from actual side dimensions
 //Provides events list and/or server-side board image rendering
 // Needed for server-side board image rendering
 // Leave empty to use legacy v2 API
-string apiURL = "https://2do.directory/api/v3/events";
+string apiURL = "https://2do.directory/api/v3";
 //string apiURL;
 
 // Events source URL {v2 or v3 compatible events list} (default: 2do API events)
@@ -137,12 +139,11 @@ debug(string message)
     if(DEBUG) llOwnerSay(message);
 }
 
-string scrupURL = "https://2do.directory/api/v3/scrup";
+string scrupURL = ""; // Leave empty to use API update server
 integer scrupAllowUpdates = TRUE; // set to FALSE only for debugging
 integer scrupSayVersion = TRUE; // announces version to owner after start or update
-
+integer scrupPin = 56748;
 string scrupRequestID; // set dynamically, used in http_response handler
-string version; // set dynamically from the script name
 
 scrup(integer enable) {
     // Uncomment the loginURI for your platform, comment or delete the other
@@ -150,17 +151,25 @@ scrup(integer enable) {
     // string loginURI = "secondlife://";   // If in Second Life
 
     string scrupVersion = "1.2.0";
-    integer scrupPin = 56748;
 
+    if(scrupURL == "" && apiURL != "") {
+    	scrupURL = apiURL + "/scrup";
+    }
     if (loginURI == "" || scrupURL == "" || !scrupAllowUpdates || !enable) {
-        if (loginURI == "") llOwnerSay("loginURI not configured");
-        else if (scrupURL == "") llOwnerSay("scrupURL not configured");
+        if (loginURI == "") llOwnerSay("loginURI not set, auto-updates disabled");
+        else if (scrupURL == "") llOwnerSay("scrupURL not set, auto-updates disabled");
         llSetRemoteScriptAccessPin(0);
         return;
     }
 
+    debug("scrupURL: " + scrupURL);
+    debug(llGetScriptName() + " stored version: " + version);
+
     // Detect API style: legacy (.php URL uses POST body params) vs REST (path-based)
     string clientEndpoint;
+    string scriptname;
+    string scriptnameVersion = "";
+
     list extraParams;
     if (llSubStringIndex(scrupURL, ".php") >= 0) {
         clientEndpoint = scrupURL;
@@ -171,7 +180,7 @@ scrup(integer enable) {
     }
 
     // Extract version from script name (first token matching x.y.z[-suffix])
-    version = "";
+
     list parts = llParseString2List(llGetScriptName(), [" "], []);
     integer i;
     for (i = 1; i < llGetListLength(parts); i++) {
@@ -179,25 +188,32 @@ scrup(integer enable) {
         string main = llList2String(llParseString2List(part, ["-"], []), 0);
         if (llGetListLength(llParseString2List(main, ["."], [])) > 1
         && llGetListLength(llParseString2List(main, [".", 0,1,2,3,4,5,6,7,8,9], [])) == 0) {
-            version = part;
+            scriptnameVersion = part;
+            scriptname = llDumpList2String(llList2List(parts, 0, i - 1), " ");
             jump versionFound;
         }
     }
     scrupAllowUpdates = FALSE;
     llSetRemoteScriptAccessPin(0);
     return;
+
     @versionFound;
 
-    string scriptname = llDumpList2String(llList2List(parts, 0, i - 1), " ");
+    debug(scriptname + " version from name: " + scriptnameVersion);
+    if(version != "" && version != scriptnameVersion) {
+    	llOwnerSay("Inventory name does not match the inside version. To avoid update conflicts,"
+	    	+ "\nyou should rename \"" + llGetScriptName() + "\" as \"" + scriptname + " " + version + "\""
+		);
+    }
 
     // After an update, announce version and delete any older copy in inventory
     if (llGetStartParameter() == scrupPin) {
-        if (scrupSayVersion) llOwnerSay(scriptname + " version " + version);
+        if (scrupSayVersion || DEBUG) llOwnerSay(scriptname + " found version " + version);
         scrupSayVersion = FALSE;
         i = 0; do {
             string found = llGetInventoryName(INVENTORY_SCRIPT, i);
             if (found != llGetScriptName() && llSubStringIndex(found, scriptname + " ") == 0) {
-                llOwnerSay("deleting duplicate '" + found + "'");
+                llOwnerSay("removing previous version '" + found + "'");
                 llRemoveInventory(found);
             }
         } while (i++ < llGetInventoryNumber(INVENTORY_SCRIPT) - 1);
@@ -291,13 +307,13 @@ getConfig() {
 
     }
 
-    debug("active sides: " + llDumpList2String(activeSides, "; "));
+    // debug("active sides: " + llDumpList2String(activeSides, "; "));
 
     // Sanitize renderer, apiURL and eventsURL
 
     // eventsURL    | apiURL    | result
-    // empty/v3        | set        | eventsURL = apiURL + "/lsl", renderer untouched
-    // empty/v3        | empty        | eventsURL = apiURL + "/lsl", renderer untouched
+    // empty/v3        | set        | eventsURL = apiURL + "/events/lsl", renderer untouched
+    // empty/v3        | empty        | eventsURL = apiURL + "/events/lsl", renderer untouched
     // custom        | set         | eventsURL untouched, renderer osdraw
     // custom        | empty        | eventsURL untouched, renderer untouched
 
@@ -305,12 +321,12 @@ getConfig() {
     string fallbackEventsURL = "https://2do.directory/api/v3/events/lsl";
     if(eventsURL == "") {
         if( apiURL != "") {
-            eventsURL = apiURL + "/lsl";
+            eventsURL = apiURL + "/events/lsl";
         } else {
             eventsURL = fallbackEventsURL;
         }
     }
-    debug("events URL "  + eventsURL);
+    // debug("events URL "  + eventsURL);
 
     // First set default renderer unless valid option
     if (renderer == "v2" || renderer == "lsl2" || renderer == "osdraw" || apiURL == "") {
@@ -323,12 +339,12 @@ getConfig() {
     string checkEventsURL = eventsURL;
     integer qIdx = llSubStringIndex(eventsURL, "?");
     if (qIdx != -1) checkEventsURL = llGetSubString(eventsURL, 0, qIdx - 1);
-    if(renderer == "server" && checkEventsURL != (apiURL + "/lsl") && checkEventsURL != fallbackEventsURL) {
-        llOwnerSay("ERROR: Fallback to osdraw, custom source " + eventsURL + " not compatible with server-side rendering");
+    if(renderer == "server" && checkEventsURL != (apiURL + "/events/lsl") && checkEventsURL != fallbackEventsURL) {
+        llOwnerSay("renderer: fallback to osdraw, custom source " + eventsURL + " is not compatible with server-side rendering");
         renderer = "osdraw";
+    //} else {
+    //	debug("renderer " + renderer);
     }
-
-    debug("renderer " + renderer);
 
     if (backgroundColor == "transparent") {
         backgroundColor = TEXTURE_TRANSPARENT;
@@ -447,7 +463,7 @@ string trimText(string in, string fontname, integer fontsize,integer width)
 
 refreshTexturePNG()
 {
-    debug("fetching PNG texture from server " + eventsURL);
+    // debug("fetching PNG texture from server " + eventsURL);
 
     string contentType = "image";
     string extraParams = "width:" + (string)textureWidth + ",height:" + (string)textureHeight;
@@ -480,8 +496,8 @@ refreshTexturePNG()
 
             // PNG texture
             //string pngURL = eventsURL + querySep(eventsURL) + "format=png&" + canvasArgs;
-            string pngURL = apiURL + "/board.png?" + canvasArgs;
-            debug("pngURL " + pngURL);
+            string pngURL = apiURL + "/events/board.png?" + canvasArgs;
+            // debug("pngURL " + pngURL);
             osSetDynamicTextureURLBlendFace(dynamicID, contentType, pngURL, extraParams, blend, disp, timer, alpha, face);
         }
         i++;
@@ -496,7 +512,7 @@ refreshTexture()
 
 refreshTextureOsDraw()
 {
-    debug("generate texture with OSSL osDraw");
+    // debug("generate texture with OSSL osDraw");
     string commandList = "";
 
     eventIndices = [];
@@ -618,7 +634,7 @@ refreshTextureOsDraw()
 
 openWebPage(key avatar, string url)
 {
-    debug("openWebPage → " + url);
+    // debug("openWebPage → " + url);
     llLoadURL(avatar, "Visit 2DO.pm/events for a detailed full list of upcoming events.", url);
 }
 
@@ -655,7 +671,7 @@ teleportAvatar(key avatar, string teleportURL) {
         osTeleportAgent(avatar, teleportURL, landingPoint, lookAt);
         return;
     }
-    debug("teleportAvatar called with null key");
+    // debug("teleportAvatar called with null key");
 }
 
 teleportMap(string teleportURL) {
@@ -683,7 +699,7 @@ list parseV3(string body)
 {
     list result = [];
     list lines = llParseString2List(body, ["\n"], []);
-    debug("parseV3 received " + llGetListLength(lines) + " lines" + " from " + eventsURL);
+    // debug("parseV3 received " + llGetListLength(lines) + " lines" + " from " + eventsURL);
     integer numLines = llGetListLength(lines);
     integer li;
     for (li = 0; li < numLines; li++) {
@@ -707,9 +723,9 @@ list parseV3(string body)
         ];
         @nextLineV3;
     }
-    debug("parseV3 parsed " + (string)(llGetListLength(result)/10) + " events");
+    // debug("parseV3 parsed " + (string)(llGetListLength(result)/10) + " events");
     list firstEvent = llList2List(result, 4, 9);
-    debug("First event: " + llDumpList2String(firstEvent, " -- "));
+    // debug("First event: " + llDumpList2String(firstEvent, " -- "));
     return result;
 }
 
@@ -720,7 +736,7 @@ list parseLsl2(string body)
 {
     list result = [];
     list lines = llParseString2List(body, ["\n"], []);
-    debug("parseLsl2 received " + llGetListLength(lines) + " lines" + " from " + eventsURL);
+    // debug("parseLsl2 received " + llGetListLength(lines) + " lines" + " from " + eventsURL);
     integer numLines = llGetListLength(lines);
     integer li = 1; // skip version line
     while (li + 2 < numLines) {
@@ -745,9 +761,9 @@ list parseLsl2(string body)
         }
         li += 3;
     }
-    debug("parseLsl2 parsed " + (string)(llGetListLength(result)/10) + " events");
+    // debug("parseLsl2 parsed " + (string)(llGetListLength(result)/10) + " events");
     list firstEvent = llList2List(result, 4, 9);
-    debug("First event: " + llDumpList2String(firstEvent, " -- "));
+    // debug("First event: " + llDumpList2String(firstEvent, " -- "));
     return result;
 }
 
@@ -792,7 +808,7 @@ default
 
         integer cmReqIdx = llListFindList(clickmapRequests, [requestID]);
         if (cmReqIdx != -1) {
-            debug("received eventsData for ratio " + llList2String(clickmapRequests, cmReqIdx + 1));
+            // debug("received eventsData for ratio " + llList2String(clickmapRequests, cmReqIdx + 1));
             string ratioStr = llList2String(clickmapRequests, cmReqIdx + 1);
             clickmapRequests = llDeleteSubList(clickmapRequests, cmReqIdx, cmReqIdx + 1);
             if (status == 200) {
@@ -804,13 +820,13 @@ default
                     eventsData       += [body];
                 }
             } else {
-                debug("eventsData error " + (string)status + " for ratio " + ratioStr);
+                // debug("eventsData error " + (string)status + " for ratio " + ratioStr);
             }
             return;
         }
 
         if(requestID == httpRequest) {
-            debug("received data for raw events list");
+            // debug("received data for raw events list");
             string firstLine = llList2String(llParseString2List(body, ["\n"], [""]), 0);
             if(status==200) {
                 // Auto-detect format: first non-empty line with a comma → v3 CSV; otherwise → lsl2
@@ -919,11 +935,11 @@ default
                 return;
             }
             if (point == TOUCH_INVALID_TEXCOORD) {
-                debug("TOUCH_INVALID_TEXCOORD " + (string)point);
+                // debug("TOUCH_INVALID_TEXCOORD " + (string)point);
                 return;
             }
             if (activeSides != [ALL_SIDES] && llListFindList(activeSides, face) == -1) {
-                debug("ignore inactive face " + (string)face);
+                // debug("ignore inactive face " + (string)face);
                 return;
             }
 
@@ -937,7 +953,7 @@ default
             } else {
                 float faceRatio = getValidFaceRatio(face);
                 if (faceRatio <= 0) {
-                    debug("invalid face ratio " + (string)faceRatio);
+                    // debug("invalid face ratio " + (string)faceRatio);
                     return;
                 }
                 ratioKey = (string)(faceRatio * (float)textureHeight / (float)textureWidth);
@@ -945,7 +961,7 @@ default
 
             integer evDataIdx = llListFindList(eventsDataRatios, [ratioKey]);
             if (evDataIdx == -1) {
-                debug("no eventsData for ratio " + ratioKey);
+                // debug("no eventsData for ratio " + ratioKey);
                 return;
             }
 
@@ -972,7 +988,7 @@ default
                         return;
                     }
                 } else {
-                    debug("invalid eventsData line: [" + line + "]" + debugDetails);
+                    // debug("invalid eventsData line: [" + line + "]" + debugDetails);
                 }
                 @nextTouchLine;
             }
@@ -984,12 +1000,15 @@ default
     {
         // timeout listener
         if(listening!=0) {
-        if( (listening + 300) < (integer)llGetTime() ) {
-        llListenRemove(listenHandle);
-        avatarDestinations=[];
-        listening = 0;
+	        if( (listening + listenTimeout) < (integer)llGetTime() ) {
+				debug("Timeout " + listening);
+		        llListenRemove(listenHandle);
+		        avatarDestinations=[];
+		        listening = 0;
+			}
         }
-        }
+
+        debug("Refresh time " + listening);
         // refresh texture
         refreshEvents();
     }
@@ -1004,9 +1023,10 @@ default
         if(change & CHANGED_SHAPE ||
         change & CHANGED_SCALE ||
         change & CHANGED_OWNER ||
-        change & CHANGED_REGION
+        change & CHANGED_REGION ||
+        (change & CHANGED_INVENTORY && llGetStartParameter() != scrupPin)
         ) {
-        llResetScript();
+        	llResetScript();
         }
     }
 }
