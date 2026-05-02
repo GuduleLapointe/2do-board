@@ -1,6 +1,6 @@
 // 2DO board
 //
-// Version: 3.0.1
+// Version: 3.0.3
 //
 // In-word teleporter board for 2DO events server.
 //
@@ -133,79 +133,91 @@ list clickmapRequests = [];
 // ==========================
 // Automatic updates provider
 
-// Change only in your master script
-integer scrupAllowUpdates = TRUE; // should always be true, except for debug
-
-// Do not change below
-string scrupRequestID;
-string version;
-
 debug(string message)
 {
 	if(DEBUG) llOwnerSay(message);
 }
 
-scrup() {
-	string scrupURL = "https://2do.directory/api/v3/scrup";
-	integer scrupPin = 56748; // Change or not, it shouldn't hurt
-	debug("scrupURL" + scrupURL + " scrupPin " + scrupPin);
-	debug("checking available updates");
-	string scrupVersion = "1.0.2";
-	if(!scrupAllowUpdates)  {
-		llSetRemoteScriptAccessPin(0);
-		return;
-	}
+string scrupURL = "https://2do.directory/api/v3/scrup";
+integer scrupAllowUpdates = TRUE; // set to FALSE only for debugging
+integer scrupSayVersion = TRUE; // announces version to owner after start or update
 
-	// Get version from script name
-	string name = llGetScriptName();
-	string part;
-	// list softParts=[];
-	list parts=llParseString2List(name, [" "], "");
-	integer i; for (i=1;i<llGetListLength(parts);i++)
-	{
-		part = llList2String(parts, i);
-		string main = llList2String(llParseString2List(part, ["-"], ""), 0);
-		if(llGetListLength(llParseString2List(main, ["."], [])) > 1
-		&& llGetListLength(llParseString2List(main, [".", 0,1,2,3,4,5,6,7,8,9], [])) == 0) {
-		version = part;
-		jump updateEnabled;
-		}
-	}
-	version = "";
-	scrupAllowUpdates = FALSE;
-	llSetRemoteScriptAccessPin(0);
-	return;
+string scrupRequestID; // set dynamically, used in http_response handler
+string version; // set dynamically from the script name
 
-	@updateEnabled;
-	list scriptInfo = [ llDumpList2String(llList2List(parts, 0, i - 1), " "), version ];
-	string scriptname = llList2String(scriptInfo, 0);
-	// Not sure why version is set again here
-	version = llList2String(scriptInfo, 1);
+scrup(integer enable) {
+    // Uncomment the loginURI for your platform, comment or delete the other
+    string loginURI = osGetGridLoginURI();  // If in OpenSimulator
+    // string loginURI = "secondlife://";   // If in Second Life
 
-	if(llGetStartParameter() == scrupPin) {
-		llOwnerSay(scriptname + " version " + version);
-		// Delete other scripts with the same name. As we just got started after
-		// an update, we should be the newest one.
-		i=0; do {
-		string found = llGetInventoryName(INVENTORY_SCRIPT, i);
-		if(found != llGetScriptName()) {
-		// debug("what shall we do with " + found);
-		integer match = llSubStringIndex(found, scriptname + " ");
-		if(match == 0) {
-		llOwnerSay("deleting duplicate '" + found + "'");
-		llRemoveInventory(found);
-		}
-		}
-		} while (i++ < llGetInventoryNumber(INVENTORY_SCRIPT)-1);
-	}
+    string scrupVersion = "1.2.0";
+    integer scrupPin = 56748;
 
-	list params = [ "loginURI=" + osGetGridLoginURI(),
-	"linkkey=" + llGetKey(), "scriptname=" + scriptname,
-	"pin=" + scrupPin, "version=" + version, "scrupVersion=" + scrupVersion ];
-	scrupRequestID = llHTTPRequest(scrupURL + "/register/client", [HTTP_METHOD, "POST",
-	HTTP_MIMETYPE, "application/x-www-form-urlencoded"],
-	llDumpList2String(params, "&"));
-	llSetRemoteScriptAccessPin(scrupPin);
+    if (loginURI == "" || scrupURL == "" || !scrupAllowUpdates || !enable) {
+        if (loginURI == "") llOwnerSay("loginURI not configured");
+        else if (scrupURL == "") llOwnerSay("scrupURL not configured");
+        llSetRemoteScriptAccessPin(0);
+        return;
+    }
+
+    // Detect API style: legacy (.php URL uses POST body params) vs REST (path-based)
+    string clientEndpoint;
+    list extraParams;
+    if (llSubStringIndex(scrupURL, ".php") >= 0) {
+        clientEndpoint = scrupURL;
+        extraParams = ["action=register", "type=client"];
+    } else {
+        clientEndpoint = scrupURL + "/register/client";
+        extraParams = [];
+    }
+
+    // Extract version from script name (first token matching x.y.z[-suffix])
+    version = "";
+    list parts = llParseString2List(llGetScriptName(), [" "], []);
+    integer i;
+    for (i = 1; i < llGetListLength(parts); i++) {
+        string part = llList2String(parts, i);
+        string main = llList2String(llParseString2List(part, ["-"], []), 0);
+        if (llGetListLength(llParseString2List(main, ["."], [])) > 1
+        && llGetListLength(llParseString2List(main, [".", 0,1,2,3,4,5,6,7,8,9], [])) == 0) {
+            version = part;
+            jump versionFound;
+        }
+    }
+    scrupAllowUpdates = FALSE;
+    llSetRemoteScriptAccessPin(0);
+    return;
+    @versionFound;
+
+    string scriptname = llDumpList2String(llList2List(parts, 0, i - 1), " ");
+
+    // After an update, announce version and delete any older copy in inventory
+    if (llGetStartParameter() == scrupPin) {
+        if (scrupSayVersion) llOwnerSay(scriptname + " version " + version);
+        scrupSayVersion = FALSE;
+        i = 0; do {
+            string found = llGetInventoryName(INVENTORY_SCRIPT, i);
+            if (found != llGetScriptName() && llSubStringIndex(found, scriptname + " ") == 0) {
+                llOwnerSay("deleting duplicate '" + found + "'");
+                llRemoveInventory(found);
+            }
+        } while (i++ < llGetInventoryNumber(INVENTORY_SCRIPT) - 1);
+    }
+
+    list params = [
+        "loginURI=" + loginURI,
+        "linkkey=" + (string)llGetKey(),
+        "scriptname=" + scriptname,
+        "pin=" + (string)scrupPin,
+        "version=" + version,
+        "scrupVersion=" + scrupVersion
+    ] + extraParams;
+    scrupRequestID = llHTTPRequest(
+        clientEndpoint,
+        [HTTP_METHOD, "POST", HTTP_MIMETYPE, "application/x-www-form-urlencoded"],
+        llDumpList2String(params, "&")
+    );
+    llSetRemoteScriptAccessPin(scrupPin);
 }
 
 integer boolean(string val)
